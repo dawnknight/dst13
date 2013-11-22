@@ -1,10 +1,11 @@
 import os
+import numpy as np
 from .dst_read_bin import *
 
 # -------- 
 # load window pixel labels
 # -------- 
-def window_pix(hand=False):
+def window_pix(hand=False, create=False):
     """ Load window pixel labels """
 
     if hand:
@@ -12,7 +13,7 @@ def window_pix(hand=False):
 
         # -- define the path and get the file list
         path  = os.path.join(os.environ['DST_WRITE'],'window_chooser')
-        files = os.listdir(path)
+        files = [i for i in os.listdir(path) if 'reg' in i]
 
         # -- utilities
         sfile  = 'window_labels.out'
@@ -24,7 +25,7 @@ def window_pix(hand=False):
         dtype  = np.float
 
         # -- check if stacked window list is alread available
-        if sfile in files:
+        if not create and (sfile in os.listdir(path)):
             return read_bin(sfile,np.int,[nrow,ncol],path)
 
         # -- loop through files and add to mask
@@ -33,8 +34,11 @@ def window_pix(hand=False):
 
         winpix = 1*(winpix > 0.0)
 
+        # -- split merged windows
+        winpix = winpix*read_bin('split_merged.out',np.int,[nrow,ncol],path)
+
         # -- write to file
-        fout  = os.path.join(path,sfile)
+        fout = os.path.join(path,sfile)
 
         print("DST_WINDOW_PIX: writing combined labels to")
         print("DST_WINDOW_PIX:   {0}".format(fout))
