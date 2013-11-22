@@ -1,0 +1,6 @@
+output
+data
+*.pyc
+*~
+*.fits
+*.zip
