@@ -30,14 +30,13 @@ class LightCurves():
         # -- take a time slice
         cls.paths, cls.files, cls.times = fl.time_slice(start, end)
 
-        # -- get the window labels
-        labels = window_labels(hand=True)
-        wpix   = np.where(labels)
-        labvec = labels[wpix].flatten()
-        sind   = np.argsort(labvec)
-        labsrt = labvec[sind]
-        lbound = list(np.where((labsrt-np.roll(labsrt,1))==1)[0])
-        lbound = [0] + lbound + [labsrt.size]
+        # -- get the window labels and extract parameters
+        labs   = WindowLabels(hand=True)
+        wpix   = labs.wpix
+        labvec = labs.labvec
+        sind   = labs.sind
+        labsrt = labs.labsrt
+        lbound = labs.lbound
 
         # -- initialize the light curves
         cls.ntime = len(cls.times)
