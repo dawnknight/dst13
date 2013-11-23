@@ -3,7 +3,9 @@ import scipy.ndimage as nd
 from .dst_window_pix import *
 
 # -------- 
-# create a map of window labels
+#  Create a map of window labels
+#
+#  2013/11/22 - Written by Greg Dobler (CUSP/NYU)
 # -------- 
 def window_labels(hand=False):
     """ Create a map of window labels """
@@ -15,3 +17,24 @@ def window_labels(hand=False):
     labels, nobj = nd.measurements.label(winpix)
 
     return labels.astype(np.int)
+
+
+# -------- 
+#  Class containing window labels and useful parameters
+# -------- 
+class WindowLabels():
+
+    def __init__(cls, hand=False):
+        """ class containing window labels and useful parameters """
+
+        # -- get the window labels
+        cls.labels = window_labels(hand=hand) # labels map
+        cls.wpix   = np.where(cls.labels) # window pixels
+        cls.labvec = cls.labels[cls.wpix].flatten() # labels vector
+        cls.sind   = np.argsort(cls.labvec) # sorting indices
+        cls.labsrt = cls.labvec[cls.sind] # sorted labels vector
+        lbound     = list(np.where((cls.labsrt-np.roll(cls.labsrt,1))==1)[0])
+        cls.lbound = [0] + lbound + [cls.labsrt.size] # boundaries of labels
+        cls.nwin   = len(cls.lbound) - 1 # total number of windows
+
+        return
