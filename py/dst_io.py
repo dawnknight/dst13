@@ -204,7 +204,7 @@ def read_raw(fname, path=os.environ['DST_WRITE'], nrow=2160, ncol=4096):
 
 
 # -------- 
-# write the png
+# Write the png
 # -------- 
 def write_png(img, fname, path=os.environ['DST_WRITE'], time_='', text_='', 
               figsize=[7.50,3.96], cmap=None, clim=None):
