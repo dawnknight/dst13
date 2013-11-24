@@ -1,6 +1,7 @@
 import os
 import pickle as pkl
 import numpy as np
+from sklearn.decomposition import PCA
 from .dst_window_labels import *
 from .dst_io import *
 
@@ -12,6 +13,8 @@ from .dst_io import *
 # -------- 
 class LightCurves():
 
+
+    # -------- initialize the class
     def __init__(cls, start, end, dpath=os.environ['DST_DATA'], 
                  wpath=os.environ['DST_WRITE'], lcsfile=None):
         """ Make night time light curves for start and end times """
@@ -118,3 +121,36 @@ class LightCurves():
                 cls.std[iwin,itime,2] = cls.std[iwin,itime,2]/rtn
 
         return
+
+
+
+    # -------- principle component analysis in time
+    def pca_time(cls, ncomp, colors='rgb'):
+
+        """ Run a basic principle component analysis in time """
+
+        # -- utilities
+        clrs = []
+        if 'r' in colors:
+            clrs.append(0)
+        if 'g' in colors:
+            clrs.append(1)
+        if 'b' in colors:
+            clrs.append(2)
+
+
+        # -- initialize PCA and do the fit
+        pcas = []
+        for ic,c in zip(clrs,colors):
+            print("DST_LIGHT_CURVES: Running PCA with " + 
+                  "{0} components in {1}-band...".format(ncomp,c))
+
+            pca_ = PCA(n_components=ncomp)
+            pca_.fit(cls.lcs[:,:,ic])
+
+            pcas.append(pca_)
+
+
+        # -- extract the components and return as list
+        return pcas
+
