@@ -154,3 +154,34 @@ class LightCurves():
         # -- extract the components and return as list
         return pcas
 
+
+
+    # -------- principle component analysis in time
+    def pca_space(cls, ncomp, colors='rgb'):
+
+        """ Run a basic principle component analysis in space """
+
+        # -- utilities
+        clrs = []
+        if 'r' in colors:
+            clrs.append(0)
+        if 'g' in colors:
+            clrs.append(1)
+        if 'b' in colors:
+            clrs.append(2)
+
+
+        # -- initialize PCA and do the fit
+        pcas = []
+        for ic,c in zip(clrs,colors):
+            print("DST_LIGHT_CURVES: Running PCA with " + 
+                  "{0} components in {1}-band...".format(ncomp,c))
+
+            pca_ = PCA(n_components=ncomp)
+            pca_.fit(cls.lcs[:,:,ic].T)
+
+            pcas.append(pca_)
+
+
+        # -- extract the components and return as list
+        return pcas
