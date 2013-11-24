@@ -12,23 +12,57 @@ from .dst_io import *
 # -------- 
 class LightCurves():
 
-
     def __init__(cls, start, end, dpath=os.environ['DST_DATA'], 
-                 wpath=os.environ['DST_WRITE']):
+                 wpath=os.environ['DST_WRITE'], lcsfile=None):
         """ Make night time light curves for start and end times """
+
+        # -- if desired, read in pre-computed light curves
+        if lcsfile:
+            if lcsfile[-3:]=='pkl':
+                print("DST_LIGHT_CURVES: reading pre-computed light " + 
+                      "curves from")
+                print("DST_LIGHT_CURVES:   {0}".format(lcsfile))
+
+                fopen = open(lcsfile,'rb')
+                lcs   = pkl.load(fopen)
+                fopen.close()
+            else:
+                print("DST_LIGHT_CURVES: Error - input light curves must " + 
+                      "be a .pkl file!")
+                return
+
+            cls.lcs   = lcs
+            cls.start = start
+            cls.end   = end
+            cls.paths = np.array([])
+            cls.files = np.array([])
+            cls.times = np.array([])
+            cls.nwin  = cls.lcs.shape[0]
+            cls.ntime = cls.lcs.shape[1]
+            cls.std   = np.zeros([cls.nwin,cls.ntime,3])
+            cls.err   = np.zeros([cls.nwin,cls.ntime,3])
+            cls.bse   = np.zeros([cls.nwin,cls.ntime,3])
+
+            return
+
 
         # -- utilities
         bord = 20
         nrow = 2160
         ncol = 4096
 
+
         # -- get the full file list
         fopen = open(os.path.join(wpath,'filelist.pkl'),'rb')
         fl    = pkl.load(fopen)
         fopen.close()
 
+
         # -- take a time slice
+        cls.start = start
+        cls.end   = end
         cls.paths, cls.files, cls.times = fl.time_slice(start, end)
+
 
         # -- get the window labels and extract parameters
         labs   = WindowLabels(hand=True)
@@ -38,6 +72,7 @@ class LightCurves():
         labsrt = labs.labsrt
         lbound = labs.lbound
 
+
         # -- initialize the light curves
         cls.ntime = len(cls.times)
         cls.nwin  = len(lbound) - 1
@@ -46,11 +81,13 @@ class LightCurves():
         cls.err   = np.zeros([cls.nwin,cls.ntime,3])
         cls.bse   = np.zeros([cls.nwin,cls.ntime,3])
 
+
         # -- initialize color vectors
         red = np.zeros(sind.size)
         grn = np.zeros(sind.size)
         blu = np.zeros(sind.size)
         img = np.zeros([nrow-2*bord,ncol-2*bord,3]).astype(np.uint8)
+
 
         # -- loop through images
         for itime, (p,f,t) in enumerate(zip(cls.paths,cls.files,cls.times)):
