@@ -44,12 +44,25 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
 
         paths, files, times = fl.time_slice(start,end)
     else:
-        paths = [inpath]
-        files = [infile]
+        if type(inpath) is not list:
+            if type(inpath) is np.ndarray:
+                paths = list(inpath)
+            else:
+                paths = [inpath]
+        else:
+            paths = inpath
+
+        if type(infile) is not list:
+            if type(infile) is np.ndarray:
+                files = list(infile)
+            else:
+                files = [infile]
+        else:
+            files = infile
 
 
     # -- initialize the correlation matrix and dictionary
-    cc_mat = np.zeros([len(files),ref.shape[0],ref.shape[1]])
+    cc_mat = np.zeros([len(files),2*bord,2*bord])
     cc_dic = {}
 
 
@@ -64,7 +77,8 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
 
         # -- initialize the postage stamp, correlation, & sub-matrix dictionary
         stm        = np.zeros([reg[2]-reg[0],reg[3]-reg[1]])
-        cc_sub_mat = np.zeros([len(files),ref.shape[0],ref.shape[1]])
+        conv_mat   = np.zeros([ref.shape[0],ref.shape[1]])
+        cc_sub_mat = np.zeros([len(files),2*bord,2*bord])
         cc_sub_dic = {}
 
         # -- loop through files
@@ -79,11 +93,13 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
             stm     -= stm.mean()
             stm     /= stm.std()
 
-            cc_sub_mat[i] = fftconvolve(ref, stm[::-1,::-1], 'same')
+            conv_mat      = fftconvolve(ref, stm[::-1,::-1], 'same')
+            cc_sub_mat[i] = conv_mat[nside/2-20:nside/2+20,
+                                     nside/2-20:nside/2+20]
 
             # -- find the maximum correlation and add to the dictionary
-            mind          = cc_sub_mat[i].argmax()
-            off           = [mind / nside - nside/2, mind % nside - nside/2]
+            mind = conv_mat.argmax()
+            off  = [mind / nside - nside/2, mind % nside - nside/2]
 
             if max(np.abs(off))>(bord-1):
                 print("DST_REGISTER: REGISTRATION FAILED FOR FILE " + 
