@@ -9,7 +9,7 @@ from .dst_io import *
 #  2013/11/23 - Written by Greg Dobler (CUSP/NYU)
 # -------- 
 def register(inpath=None, infile=None, outpath=None, outfile=None, start=None, 
-             end=None, multi=False):
+             end=None, multi=False, cc_mat=None, cc_dic=None):
 
     """ Register a single image or all images between some start and
     end time.  Pixels shifts for registration are written to a pickled
@@ -19,10 +19,8 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
 
     # -- utilities
     bord  = 20
-    bvec  = np.arange(-bord,bord+1)
-    blen  = bvec.size
-    nside = 800 # npix/side of a postage stamp
-    reg   = (900, 1600, 1700, 2400) # (ul row, ul col, ll row, ll col)
+    nside = 801 # npix/side of a postage stamp
+    reg   = (900, 1600, 1701, 2401) # (ul row, ul col, ll row, ll col)
 
 
     # -- set the reference frame (registering off of the green image)
@@ -61,9 +59,11 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
             files = infile
 
 
-    # -- initialize the correlation matrix and dictionary
-    cc_mat = np.zeros([len(files),2*bord,2*bord])
-    cc_dic = {}
+    # -- initialize the correlation dictionary and matrix
+    if cc_dic==None:
+        cc_dic = {}
+    if cc_mat==None:
+        cc_mat = np.zeros([len(files),2*bord+1,2*bord+1])
 
 
     # -- loop through the files and calculate the (sub-)correlation matrix
@@ -78,7 +78,7 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
         # -- initialize the postage stamp, correlation, & sub-matrix dictionary
         stm        = np.zeros([reg[2]-reg[0],reg[3]-reg[1]])
         conv_mat   = np.zeros([ref.shape[0],ref.shape[1]])
-        cc_sub_mat = np.zeros([len(files),2*bord,2*bord])
+        cc_sub_mat = np.zeros([len(files),2*bord+1,2*bord+1])
         cc_sub_dic = {}
 
         # -- loop through files
@@ -94,18 +94,18 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
             stm     /= stm.std()
 
             conv_mat      = fftconvolve(ref, stm[::-1,::-1], 'same')
-            cc_sub_mat[i] = conv_mat[nside/2-20:nside/2+20,
-                                     nside/2-20:nside/2+20]
+            cc_sub_mat[i] = conv_mat[nside//2-20:nside//2+21,
+                                     nside//2-20:nside//2+21]
 
             # -- find the maximum correlation and add to the dictionary
             mind = conv_mat.argmax()
-            off  = [mind / nside - nside/2, mind % nside - nside/2]
+            off  = [mind / nside - nside//2, mind % nside - nside//2]
 
             if max(np.abs(off))>(bord-1):
                 print("DST_REGISTER: REGISTRATION FAILED FOR FILE " + 
                       "{0}!!!".format(os.path.join(p,f)))
 
-                off = [0,0]
+                off = [314,314]
 
             cc_sub_dic[f] = off
 
@@ -122,7 +122,7 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
         print("DST_REGISTER: running {0} processes...".format(nproc))
 
         # -- initialize the full correlation matrix and processes
-        cc_mat = np.zeros([len(files),2*bord+1,2*bord+1])
+#        cc_mat = np.zeros([len(files),2*bord+1,2*bord+1])
         parents, childs, ps = [], [], []
 
         # -- initialize the pipes and processes, then start
@@ -145,7 +145,8 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
             ps[ip].join()
             print("DST_REGISTER: process {0} rejoined.".format(ip))
     else:
-        cc_mat, cc_dic = reg_subset(-314,paths,files,verbose=True)
+        cc_mat[:,:,:], cc_sub_dic = reg_subset(-314,paths,files,verbose=True)
+        cc_dic.update(cc_sub_dic)
 
 
-    return cc_mat, cc_dic
+    return cc_dic
