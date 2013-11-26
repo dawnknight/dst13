@@ -8,3 +8,4 @@ from dst13.py.dst_window_labels import *
 from dst13.py.dst_light_curves import *
 from dst13.py.dst_register import *
 from dst13.py.dst_imtools import *
+from dst13.py.dst_kmeans_coarse import *
