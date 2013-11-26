@@ -1,7 +1,8 @@
-import sys, os, pickle, gim
+import sys, os, pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+from .dst_imtools import *
 
 # -------- 
 # Class holding the names and directories of all DST files
@@ -176,9 +177,9 @@ class FileList():
                 img = read_raw(f,p)
             else:
                 try:
-                    img = gim.rebin(read_raw(f,p),fac)
+                    img = rebin(read_raw(f,p),fac)
                 except:
-                    print("DST_IO: gim.rebin is only compatible " + 
+                    print("DST_IO: rebin is only compatible " + 
                           "with 2D arrays")
                     img = read_raw(f,p)
 
