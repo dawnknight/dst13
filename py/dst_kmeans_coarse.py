@@ -106,7 +106,7 @@ def kmeans_coarse_plot(kfile,outname):
         plt.xticks([60.*j for j in range(10+1)], htimes)
         plt.xlabel('time [HH:MM]')
         plt.ylabel('amplitude [arb units]')
-        plt.figtext(0.15,0.5,'cluster #' + str(i), fontsize=15)
+        plt.figtext(0.15,0.5,'cluster #' + str(i+1), fontsize=15)
         plt.grid(b=1)
         plt.xlim([0,600])
         plt.ylim([clmin,clmax])
