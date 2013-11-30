@@ -1,3 +1,5 @@
+import time
+
 import os,multiprocessing
 import pickle as pkl
 import numpy as np
@@ -94,7 +96,9 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
             stm     -= stm.mean()
             stm     /= stm.std()
 
-            conv_mat      = fftconvolve(ref, stm[::-1,::-1], 'same')
+            t1 = time.time()
+            conv_mat[:,:] = fftconvolve(ref, stm[::-1,::-1], 'same')
+            print "total convolution time = ", time.time()-t1
             cc_sub_mat[i] = conv_mat[nside//2-20:nside//2+21,
                                      nside//2-20:nside//2+21]
 
