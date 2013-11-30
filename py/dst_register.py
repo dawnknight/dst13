@@ -1,4 +1,5 @@
-import os,pickle,multiprocessing
+import os,multiprocessing
+import pickle as pkl
 import numpy as np
 from scipy.signal import fftconvolve
 from .dst_io import *
@@ -31,13 +32,13 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
     ref  /= ref.std()
 
 
-    # -- get the nighttime slice
+    # -- get the time slice
     if start!=None:
         print("DST_REGISTER: registering all images from " + 
               "{0} to {1}".format(start,end))
 
         fopen = open(os.path.join(os.environ['DST_WRITE'],'filelist.pkl'))
-        fl    = pickle.load(fopen)
+        fl    = pkl.load(fopen)
         fopen.close()
 
         paths, files, times = fl.time_slice(start,end)
@@ -122,7 +123,6 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
         print("DST_REGISTER: running {0} processes...".format(nproc))
 
         # -- initialize the full correlation matrix and processes
-#        cc_mat = np.zeros([len(files),2*bord+1,2*bord+1])
         parents, childs, ps = [], [], []
 
         # -- initialize the pipes and processes, then start
@@ -150,3 +150,58 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
 
 
     return cc_dic
+
+
+
+# -------- 
+#  Register night time images
+#
+#  2013/11/29 - Written by Greg Dobler (CUSP/NYU)
+# -------- 
+def register_night(multi=False):
+
+    """ Register night time images. """
+
+    # -- alerts
+    print("DST_REGISTER: registering night time images...")
+
+
+    # -- set the parameters
+    days  = ["10/26", "10/27", "10/28", "10/29", "10/30", "10/31", "11/01",
+             "11/02", "11/03", "11/04", "11/05", "11/06", "11/07", "11/08",
+             "11/09", "11/10", "11/11", "11/12", "11/13", "11/14", "11/15", 
+             "11/16", "11/17"]
+    hours = ["19:00:00", "05:00:00"]
+
+
+    # -- initialize dictionary and register
+    dname = os.path.join(os.environ['DST_WRITE'],'registration_dictionary.pkl')
+    
+    try:
+        fopen  = open(dname,'rb')
+        cc_dic = pkl.load(fopen)
+        fopen.close()
+    except:
+        cc_dic = {}
+
+    for i in range(len(days)):
+        start = days[i]   + "/13 " + hours[0]
+        end   = days[i+1] + "/13 " + hours[1]
+        dum = register(start=start, end=end, cc_dic=cc_dic, multi=multi)
+
+        # -- write dictionary to file
+        print("DST_REGISTER: writing registration dictionary to file")
+        print("DST_REGISTER:   {0}".format(dname))
+        fopen = open(dname,'wb')
+        pickle.dump(cc_dic)
+        fopen.close()
+
+
+    # -- write dictionary to file
+    print("DST_REGISTER: writing registration dictionary to file")
+    print("DST_REGISTER:   {0}".format(dname))
+    fopen = open(dname,'wb')
+    pickle.dump(cc_dic)
+    fopen.close()
+
+    return
