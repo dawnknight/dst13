@@ -16,7 +16,8 @@ class LightCurves():
 
     # -------- initialize the class
     def __init__(cls, start, end, dpath=os.environ['DST_DATA'], 
-                 wpath=os.environ['DST_WRITE'], lcsfile=None):
+                 wpath=os.environ['DST_WRITE'], lcsfile=None, 
+                 registered=True):
         """ Make night time light curves for start and end times """
 
         # -- if desired, read in pre-computed light curves
@@ -37,6 +38,7 @@ class LightCurves():
             cls.lcs   = lcs
             cls.start = start
             cls.end   = end
+            cls.reg   = False
             cls.paths = np.array([])
             cls.files = np.array([])
             cls.times = np.array([])
@@ -65,6 +67,18 @@ class LightCurves():
         cls.start = start
         cls.end   = end
         cls.paths, cls.files, cls.times = fl.time_slice(start, end)
+
+
+        # -- get the registration dictionary
+        cls.reg = registered
+        if registered:
+            try:
+                fopen  = open(os.path.join(wpath,
+                                           'registration_dictionary.pkl'),'rb')
+                cc_dic = pkl.load(fopen)
+                fopen.close()
+            except:
+                cc_dic = {}
 
 
         # -- get the window labels and extract parameters
@@ -97,7 +111,23 @@ class LightCurves():
             print("DST_LIGHT_CURVES: extracting window brightnesses for " + 
                   "file {0} of {1}".format(itime+1,len(cls.times)))
 
-            img[:,:,:] = read_raw(f,p)[bord:-bord,bord:-bord,:]
+            # check for registration; register if not yet registered
+            if registered:
+                try:
+                    dr, dc = cc_dic[f]
+                except:
+                    dr, dc = dst_register(p,f,cc_dic=cc_dic)[f]
+
+                if max(abs(dr),abs(dc))<20:
+                    img[:,:,:] = np.roll(
+                        np.roll(
+                            read_raw(f,p),dr,0
+                        ),dc,1
+                    )[bord:-bord,bord:-bord,:]
+                else:
+                    img[:,:,:] = read_raw(f,p)[bord:-bord,bord:-bord,:]
+            else:
+                img[:,:,:] = read_raw(f,p)[bord:-bord,bord:-bord,:]
 
             red[:] = ((img[:,:,0])[wpix])[sind].astype(np.float)
             grn[:] = ((img[:,:,1])[wpix])[sind].astype(np.float)
