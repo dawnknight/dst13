@@ -1,5 +1,3 @@
-import time
-
 import os,multiprocessing
 import pickle as pkl
 import numpy as np
@@ -88,27 +86,38 @@ def register(inpath=None, infile=None, outpath=None, outfile=None, start=None,
         for i,(p,f) in enumerate(zip(paths,files)):
             if verbose:
                 print("DST_REGISTER: " + 
-                      "calculating correlation coefficient for file " + 
-                      "{0} of {1}".format(i+1,len(files)))
+                      "registering file {0} of {1}".format(i+1,len(files)))
+
+            # -- initialize failure flag
+            fflag = False
+
 
             # -- shift and find correlation
             stm[:,:] = 1.0*read_raw(f,p)[reg[0]:reg[2],reg[1]:reg[3],1]
-            stm     -= stm.mean()
-            stm     /= stm.std()
+            mn_stm   = stm.mean()
+            sd_stm   = stm.std()
 
-            t1 = time.time()
-            conv_mat[:,:] = fftconvolve(ref, stm[::-1,::-1], 'same')
-            print "total convolution time = ", time.time()-t1
-            cc_sub_mat[i] = conv_mat[nside//2-20:nside//2+21,
-                                     nside//2-20:nside//2+21]
+            if (sd_stm/(mn_stm+1.0))<0.5:
+                fflag = True
+            else:
+                stm -= mn_stm
+                stm /= sd_stm
 
-            # -- find the maximum correlation and add to the dictionary
-            mind = conv_mat.argmax()
-            off  = [mind / nside - nside//2, mind % nside - nside//2]
+                conv_mat[:,:] = fftconvolve(ref, stm[::-1,::-1], 'same')
+                cc_sub_mat[i] = conv_mat[nside//2-20:nside//2+21,
+                                         nside//2-20:nside//2+21]
 
-            if max(np.abs(off))>(bord-1):
-                print("DST_REGISTER: REGISTRATION FAILED FOR FILE " + 
-                      "{0}!!!".format(os.path.join(p,f)))
+                # -- find the maximum correlation and add to the dictionary
+                mind = conv_mat.argmax()
+                off  = [mind / nside - nside//2, mind % nside - nside//2]
+
+                if max(np.abs(off))>(bord-1):
+                    fflag = True
+
+            if fflag:
+                print("DST_REGISTER: REGISTRATION FAILED!!!")
+                print("DST_REGISTER:   PATH - {0}".format(p))
+                print("DST_REGISTER:   FILE - {0}".format(f))
 
                 off = [314,314]
 
@@ -197,7 +206,7 @@ def register_night(multi=False):
         print("DST_REGISTER: writing registration dictionary to file")
         print("DST_REGISTER:   {0}".format(dname))
         fopen = open(dname,'wb')
-        pickle.dump(cc_dic)
+        pickle.dump(cc_dic,fopen)
         fopen.close()
 
 
@@ -205,7 +214,7 @@ def register_night(multi=False):
     print("DST_REGISTER: writing registration dictionary to file")
     print("DST_REGISTER:   {0}".format(dname))
     fopen = open(dname,'wb')
-    pickle.dump(cc_dic)
+    pickle.dump(cc_dic,fopen)
     fopen.close()
 
     return
