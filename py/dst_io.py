@@ -198,9 +198,14 @@ def read_raw(fname, path=os.environ['DST_WRITE'], nrow=2160, ncol=4096):
 
     # set the file name, read, and return
     infile = os.path.join(path,fname)
+    img    = np.fromfile(open(infile,'rb'), dtype=np.uint8, count=-1)
 
-    return np.fromfile(open(infile,'rb'), dtype=np.uint8, count=-1,
-                       ).reshape(nrow,ncol,3)[:,:,::-1]
+    if img.size>0:
+        return img.reshape(nrow,ncol,3)[:,:,::-1]
+    else:
+        print("DST_IO: ERROR - EMPTY FILE IN {0}!!!".format(path))
+        print("DST_IO:   {0}".format(fname))
+        return np.zeros([nrow,ncol,3])
 
 
 
