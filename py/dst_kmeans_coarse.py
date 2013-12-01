@@ -3,7 +3,9 @@ import pickle as pkl
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from .dst_io import *
 from .dst_imtools import *
+from .dst_night_times import *
 
 # -------- 
 #  coarse K-Means clustering on whole image to reproduce Brumby's plots
@@ -14,10 +16,6 @@ from .dst_imtools import *
 def kmeans_coarse(start,end):
 
     """ K-Means clustering on a la Brumby 2013-04-10 (see cusp.pro) """
-
-    print(" USING DEFAULTS...")
-    start = '11/15/13 19:00:00'
-    end = '11/16/13 05:00:00'
 
     # -- utilities
     nrow = 2160
@@ -44,13 +42,16 @@ def kmeans_coarse(start,end):
 
     # -- rebin (r-band only), divide by L2-norm, and insert
     for i, (p,f,t) in enumerate(zip(paths[::25],files[::25],times[::25])):
-        print("File number {0} of {1}".format(i+1,lcs.shape[1]))
+        if (i+1)%5==0:
+            print("DST_KMEANS_COARSE: Loading file " + 
+                  "{0} of {1}".format(i+1,lcs.shape[1]))
         img[:]   = rebin(read_raw(f,p).astype(np.float)[:,:,0],fac).flatten()
-        img[:]  /= np.sqrt(np.dot(img**2,ons))
+        img[:]  /= np.max([np.sqrt(np.dot(img**2,ons)),1e-6])
         lcs[:,i] = img
 
 
     # -------- kmeans
+    print("DST_KMEANS_COARSE: Running K-Means...")
     kmeans_coar = KMeans(init='random', n_clusters=12, n_init=10)
     kmeans_coar.fit(lcs)
 
@@ -117,3 +118,35 @@ def kmeans_coarse_plot(kfile,outname):
 
         plt.savefig(outfile, clobber=True)
         plt.close()
+
+
+
+# -------- 
+#  run coarse K-Means for each night
+# -------- 
+def kmeans_coarse_run(wpath=os.environ['DST_WRITE']):
+
+    """ Run the coarse K-Means for the night time runs """
+
+    # -- get the night times
+    start, end = night_times()
+
+
+    # -- loop through nights, compute K-Means, and write to file
+    for i, (st,en) in enumerate(zip(start,end)):
+        print("DST_KMEANS_COARSE_RUN: Running K-Means for night {0}".format(i))
+        print("DST_KMEANS_COARSE_RUN:   {0}  {1}".format(st,en))
+
+        km    = kmeans_coarse(st,en)
+        wfile = os.path.join(wpath,'kmean_coarse_night_' + 
+                             str(i).zfill(2) + '.pkl')
+
+        print("DST_KMEANS_COARSE_RUN: Writing solution to")
+        print("DST_KMEANS_COARSE_RUN:   {0}".format(wfile))
+
+        fopen = open(wfile,'wb')
+        pkl.dump(km,fopen)
+        fopen.close()
+
+
+    return
