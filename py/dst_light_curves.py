@@ -16,37 +16,17 @@ class LightCurves():
 
     # -------- initialize the class
     def __init__(cls, start, end, dpath=os.environ['DST_DATA'], 
-                 wpath=os.environ['DST_WRITE'], lcsfile=None, 
-                 registered=True):
+                 wpath=os.environ['DST_WRITE'], infile=None, 
+                 registered=True, sample=1):
         """ Make night time light curves for start and end times """
 
         # -- if desired, read in pre-computed light curves
-        if lcsfile:
-            if lcsfile[-3:]=='pkl':
-                print("DST_LIGHT_CURVES: reading pre-computed light " + 
-                      "curves from")
-                print("DST_LIGHT_CURVES:   {0}".format(lcsfile))
-
-                fopen = open(lcsfile,'rb')
-                lcs   = pkl.load(fopen)
-                fopen.close()
-            else:
-                print("DST_LIGHT_CURVES: Error - input light curves must " + 
-                      "be a .pkl file!")
+        if infile:
+            try:
+                cls.read_files(infile)
+            except:
+                print("DST_LIGHT_CURVES: ERROR - INFILES NOT FOUND!!!")
                 return
-
-            cls.lcs   = lcs
-            cls.start = start
-            cls.end   = end
-            cls.reg   = False
-            cls.paths = np.array([])
-            cls.files = np.array([])
-            cls.times = np.array([])
-            cls.nwin  = cls.lcs.shape[0]
-            cls.ntime = cls.lcs.shape[1]
-            cls.std   = np.zeros([cls.nwin,cls.ntime,3])
-            cls.err   = np.zeros([cls.nwin,cls.ntime,3])
-            cls.bse   = np.zeros([cls.nwin,cls.ntime,3])
 
             return
 
@@ -58,6 +38,8 @@ class LightCurves():
 
 
         # -- get the full file list
+        print("DST_LIGHT_CURVES: reading the full file list...")
+
         fopen = open(os.path.join(wpath,'filelist.pkl'),'rb')
         fl    = pkl.load(fopen)
         fopen.close()
@@ -69,9 +51,18 @@ class LightCurves():
         cls.paths, cls.files, cls.times = fl.time_slice(start, end)
 
 
+        # -- sample
+        cls.samp = sample
+        if sample>1:
+            cls.paths = cls.paths[::sample]
+            cls.files = cls.files[::sample]
+            cls.times = cls.times[::sample]
+
+
         # -- get the registration dictionary
         cls.reg = registered
         if registered:
+            print("DST_LIGHT_CURVES: reading the registration dictionary...")
             try:
                 fopen  = open(os.path.join(wpath,
                                            'registration_dictionary.pkl'),'rb')
@@ -82,6 +73,8 @@ class LightCurves():
 
 
         # -- get the window labels and extract parameters
+        print("DST_LIGHT_CURVES: reading the window labels...")
+
         labs   = WindowLabels(hand=True)
         wpix   = labs.wpix
         labvec = labs.labvec
@@ -116,6 +109,8 @@ class LightCurves():
                 try:
                     dr, dc = cc_dic[f]
                 except:
+                    print("DST_LIGHT_CURVES: registration missing for file")
+                    print("DST_LIGHT_CURVES:   {0}".format(f))
                     dr, dc = dst_register(p,f,cc_dic=cc_dic)[f]
 
                 if max(abs(dr),abs(dc))<20:
@@ -146,9 +141,9 @@ class LightCurves():
                 cls.std[iwin,itime,1] = grn[ilo:ihi].std()
                 cls.std[iwin,itime,2] = blu[ilo:ihi].std()
 
-                cls.std[iwin,itime,0] = cls.std[iwin,itime,0]/rtn
-                cls.std[iwin,itime,1] = cls.std[iwin,itime,1]/rtn
-                cls.std[iwin,itime,2] = cls.std[iwin,itime,2]/rtn
+                cls.err[iwin,itime,0] = cls.std[iwin,itime,0]/rtn
+                cls.err[iwin,itime,1] = cls.std[iwin,itime,1]/rtn
+                cls.err[iwin,itime,2] = cls.std[iwin,itime,2]/rtn
 
         return
 
@@ -215,3 +210,149 @@ class LightCurves():
 
         # -- extract the components and return as list
         return pcas
+
+
+
+    # -------- write out class contents to files
+    def write_files(cls, outbase):
+
+        """ Write out the contents of this class to a file """
+
+        # -- utilities
+        outpath = os.environ['DST_WRITE']
+        lcsfile = outbase + '_lcs.pkl'
+        stdfile = outbase + '_std.pkl'
+        errfile = outbase + '_err.pkl'
+        bsefile = outbase + '_bse.pkl'
+        parfile = outbase + '_par.pkl'
+
+
+        # -- write the light curves
+        outfile = os.path.join(outpath,lcsfile)
+
+        print("DST_LIGHT_CURVES: writing light curves to")
+        print("DST_LIGHT_CURVES:   {0}".format(outfile))
+
+        fopen = open(outfile,'wb')
+        pkl.dump(cls.lcs,fopen)
+        fopen.close()
+
+
+        # -- write the standard deviation
+        outfile = os.path.join(outpath,stdfile)
+
+        print("DST_LIGHT_CURVES: writing standard deviation to")
+        print("DST_LIGHT_CURVES:   {0}".format(outfile))
+
+        fopen = open(outfile,'wb')
+        pkl.dump(cls.std,fopen)
+        fopen.close()
+
+
+        # -- write the error on the mean
+        outfile = os.path.join(outpath,errfile)
+
+        print("DST_LIGHT_CURVES: writing error to")
+        print("DST_LIGHT_CURVES:   {0}".format(outfile))
+
+        fopen = open(outfile,'wb')
+        pkl.dump(cls.err,fopen)
+        fopen.close()
+
+
+        # -- write the bootstrap errors
+        outfile = os.path.join(outpath,bsefile)
+
+        print("DST_LIGHT_CURVES: writing bootstrap errors to")
+        print("DST_LIGHT_CURVES:   {0}".format(outfile))
+
+        fopen = open(outfile,'wb')
+        pkl.dump(cls.bse,fopen)
+        fopen.close()
+
+
+        # -- write the parameters
+        outfile = os.path.join(outpath,parfile)
+
+        print("DST_LIGHT_CURVES: writing parameters to")
+        print("DST_LIGHT_CURVES:   {0}".format(outfile))
+
+        fopen = open(outfile,'wb')
+        pkl.dump(cls.start, fopen)
+        pkl.dump(cls.end,   fopen)
+        pkl.dump(cls.paths, fopen)
+        pkl.dump(cls.files, fopen)
+        pkl.dump(cls.times, fopen)
+        pkl.dump(cls.samp,  fopen)
+        pkl.dump(cls.reg,   fopen)
+        pkl.dump(cls.ntime, fopen)
+        pkl.dump(cls.nwin,  fopen)
+        fopen.close()
+
+        return
+
+
+
+    # -------- read out class contents from files
+    def read_files(cls, inbase):
+
+        """ Write out the contents of this class to a file """
+
+        # -- alert the user
+        print("DST_LIGHT_CURVES: reading light curves from")
+        print("DST_LIGHT_CURVES:   path = {0}".format(os.environ['DST_WRITE']))
+        print("DST_LIGHT_CURVES:   base = {0}".format(inbase))
+
+
+        # -- utilities
+        inpath  = os.environ['DST_WRITE']
+        lcsfile = inbase + '_lcs.pkl'
+        stdfile = inbase + '_std.pkl'
+        errfile = inbase + '_err.pkl'
+        bsefile = inbase + '_bse.pkl'
+        parfile = inbase + '_par.pkl'
+
+
+        # -- read the light curves
+        infile  = os.path.join(inpath,lcsfile)
+        fopen   = open(infile,'rb')
+        cls.lcs = pkl.load(fopen)
+        fopen.close()
+
+
+        # -- read the standard deviation
+        infile  = os.path.join(inpath,stdfile)
+        fopen   = open(infile,'rb')
+        cls.std = pkl.load(fopen)
+        fopen.close()
+
+
+        # -- read the error on the mean
+        infile  = os.path.join(inpath,errfile)
+        fopen   = open(infile,'rb')
+        cls.err = pkl.load(fopen)
+        fopen.close()
+
+
+        # -- write the bootstrap errors
+        infile  = os.path.join(inpath,bsefile)
+        fopen   = open(infile,'rb')
+        cls.bse = pkl.load(fopen)
+        fopen.close()
+
+
+        # -- read the parameters
+        infile    = os.path.join(inpath,parfile)
+        fopen     = open(infile,'rb')
+        cls.start = pkl.load(fopen)
+        cls.end   = pkl.load(fopen)
+        cls.paths = pkl.load(fopen)
+        cls.files = pkl.load(fopen)
+        cls.times = pkl.load(fopen)
+        cls.samp  = pkl.load(fopen)
+        cls.reg   = pkl.load(fopen)
+        cls.ntime = pkl.load(fopen)
+        cls.nwin  = pkl.load(fopen)
+        fopen.close()
+
+        return
