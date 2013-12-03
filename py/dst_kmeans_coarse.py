@@ -40,14 +40,20 @@ def kmeans_coarse(start,end):
     ons = np.ones(img.shape)
 
 
-    # -- rebin (r-band only), divide by L2-norm, and insert
+    # -- rebin (r-band only) and insert
     for i, (p,f,t) in enumerate(zip(paths[::25],files[::25],times[::25])):
         if (i+1)%5==0:
             print("DST_KMEANS_COARSE: Loading file " + 
                   "{0} of {1}".format(i+1,lcs.shape[1]))
-        img[:]   = rebin(read_raw(f,p).astype(np.float)[:,:,0],fac).flatten()
-        img[:]  /= np.max([np.sqrt(np.dot(img**2,ons)),1e-6])
-        lcs[:,i] = img
+        lcs[:,i] = rebin(read_raw(f,p).astype(np.float)[:,:,0],fac).flatten()
+
+
+    # -- divide by L2-norm
+    nrow = lcs.shape[0]
+
+    print("DST_KMEANS_COARSE: Normalizing by L2-norm")
+    for i in range(nrow):
+        lcs[i,:] /= np.max([np.sqrt((lcs[i]**2).sum()),1e-6])
 
 
     # -------- kmeans
@@ -138,7 +144,7 @@ def kmeans_coarse_run(wpath=os.environ['DST_WRITE']):
         print("DST_KMEANS_COARSE_RUN:   {0}  {1}".format(st,en))
 
         km    = kmeans_coarse(st,en)
-        wfile = os.path.join(wpath,'kmean_coarse_night_' + 
+        wfile = os.path.join(wpath,'kmeans_coarse_night_' + 
                              str(i).zfill(2) + '.pkl')
 
         print("DST_KMEANS_COARSE_RUN: Writing solution to")
