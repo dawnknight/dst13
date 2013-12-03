@@ -260,15 +260,15 @@ class LightCurves():
         fopen.close()
 
 
-        # -- write the bootstrap errors
-        outfile = os.path.join(outpath,bsefile)
-
-        print("DST_LIGHT_CURVES: writing bootstrap errors to")
-        print("DST_LIGHT_CURVES:   {0}".format(outfile))
-
-        fopen = open(outfile,'wb')
-        pkl.dump(cls.bse,fopen)
-        fopen.close()
+        # -- write the bootstrap errors (not implemented yet)
+#        outfile = os.path.join(outpath,bsefile)
+#
+#        print("DST_LIGHT_CURVES: writing bootstrap errors to")
+#        print("DST_LIGHT_CURVES:   {0}".format(outfile))
+#
+#        fopen = open(outfile,'wb')
+#        pkl.dump(cls.bse,fopen)
+#        fopen.close()
 
 
         # -- write the parameters
@@ -334,11 +334,11 @@ class LightCurves():
         fopen.close()
 
 
-        # -- write the bootstrap errors
-        infile  = os.path.join(inpath,bsefile)
-        fopen   = open(infile,'rb')
-        cls.bse = pkl.load(fopen)
-        fopen.close()
+        # -- write the bootstrap errors (not implemented yet)
+#        infile  = os.path.join(inpath,bsefile)
+#        fopen   = open(infile,'rb')
+#        cls.bse = pkl.load(fopen)
+#        fopen.close()
 
 
         # -- read the parameters
