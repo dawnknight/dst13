@@ -178,15 +178,17 @@ class LightCurves():
         if 'b' in colors:
             clrs.append(2)
 
+        l2  = cls.l2_norm()
 
-        # -- initialize PCA and do the fit
+
+        # -- initialize PCA and do the fit to normalized light curves
         pcas = []
         for ic,c in zip(clrs,colors):
             print("DST_LIGHT_CURVES: Running PCA with " + 
                   "{0} components in {1}-band...".format(ncomp,c))
 
             pca_ = PCA(n_components=ncomp)
-            pca_.fit(cls.lcs[:,:,ic])
+            pca_.fit((cls.lcs[:,:,ic].T/(l2[ic]+1e-6*(l2[ic]==0.0))).T)
 
             pcas.append(pca_)
 
@@ -210,6 +212,8 @@ class LightCurves():
         if 'b' in colors:
             clrs.append(2)
 
+        l2 = cls.l2_norm(norm='space')
+
 
         # -- initialize PCA and do the fit
         pcas = []
@@ -218,7 +222,7 @@ class LightCurves():
                   "{0} components in {1}-band...".format(ncomp,c))
 
             pca_ = PCA(n_components=ncomp)
-            pca_.fit(cls.lcs[:,:,ic].T)
+            pca_.fit((cls.lcs[:,:,ic]/l2[ic]).T)
 
             pcas.append(pca_)
 
