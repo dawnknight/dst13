@@ -149,6 +149,21 @@ class LightCurves():
 
 
 
+    # -------- calculate the L2-norm
+    def l2_norm(cls, norm='time'):
+
+        """ Calculate the L2 norm of the light curves in either time
+        (default) or space. """
+
+        # -- calculate L2-norm
+        ax = 1 if norm=='time' else 0
+
+
+        # -- return transposed (for speed later)
+        return np.sqrt((cls.lcs**2).sum(axis=ax)).T
+
+
+
     # -------- principle component analysis in time
     def pca_time(cls, ncomp, colors='rgb'):
 
