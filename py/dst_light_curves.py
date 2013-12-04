@@ -188,7 +188,7 @@ class LightCurves():
                   "{0} components in {1}-band...".format(ncomp,c))
 
             pca_ = PCA(n_components=ncomp)
-            pca_.fit((cls.lcs[:,:,ic].T/(l2[ic]+1e-6*(l2[ic]==0.0))).T)
+            pca_.fit((cls.lcs[:,:,ic].T/l2[ic]).T)
 
             pcas.append(pca_)
 
@@ -222,7 +222,7 @@ class LightCurves():
                   "{0} components in {1}-band...".format(ncomp,c))
 
             pca_ = PCA(n_components=ncomp)
-            pca_.fit((cls.lcs[:,:,ic]/l2[ic]).T)
+            pca_.fit((cls.lcs[:,:,ic]/(l2[ic] + 1.0*(l2[ic]<1e-6))).T)
 
             pcas.append(pca_)
 
