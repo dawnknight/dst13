@@ -9,7 +9,7 @@ import scipy.ndimage as nd
 #
 #  2013/12/04 - Written by Greg Dobler (CUSP/NYU)
 # -------- 
-def onoff(data, thresh=5.0, see=False):
+def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
 
     # -- utilities
     linec    = ['#990000','#006600', '#0000FF']
@@ -29,7 +29,8 @@ def onoff(data, thresh=5.0, see=False):
         lcs = data
 
 
-    # -- initialize median filtered arrays
+    # -- initialize light curve arrays
+    lc   = np.ma.zeros([3,lcs.shape[1]])
     lc_m = np.ma.zeros([3,lcs.shape[1]])
     lc_g = np.ma.zeros([3,lcs.shape[1]])
     sig  = np.zeros(3)
@@ -42,43 +43,52 @@ def onoff(data, thresh=5.0, see=False):
 
 
     # -- loop through windows 
-    if see:
+    if see or write:
         plt.figure(3,figsize=[7,10])
         plt.grid(b=1)
 
     for iwin in range(100,200):
 
-        # -- pull out the three bands and median filter
+        # -- pull out the three bands and median filter for plotting
+        lc = np.ma.array(lcs[iwin].T)
+
         for ib in (0,1,2):
-            lc_m[ib,:] = np.ma.array(
-                nd.filters.median_filter(
-                    lcs[iwin,:,ib],20
-                    )
-                )
+            lc_m[ib,:] = nd.filters.median_filter(lc[ib], fsize)
 
 
         # -- mask bad images
-        lc_m.mask = lc_m < 1e-6
+        lc.mask = lc < 1e-6
 
 
-        # -- set the gradient, standard deviation, and mean
-        lc_g[:,:] = np.roll(lc_m,1,1) - lc_m
+        # -- median filter the gradient
+        lc_g[:,:] = np.roll(lc,1,1) - np.roll(lc,-1,1)
+
+
+        # -- make sure the gradient mask is the right size
+        if lc_g.mask.size==1:
+            lc_g.mask = lc.mask
+
+
+        # -- get the standard deviation, and mean
         sig[:]    = lc_g.std(1)
         avg[:]    = lc_g.mean(1)
 
 
         # -- define the on and off times
+        glo = avg - thresh*sig
+        ghi = avg + thresh*sig
+
         iwin_on = np.where(
-            (lc_g[0] < (avg[0]-thresh*sig[0])) & 
-            (lc_g[1] < (avg[1]-thresh*sig[1])) & 
-            (lc_g[2] < (avg[2]-thresh*sig[2])) & 
+            (lc_g[0] < (glo[0])) & 
+            (lc_g[1] < (glo[1])) & 
+            (lc_g[2] < (glo[2])) & 
             ~lc_g.mask[0]
             )[0]
 
         iwin_off = np.where(
-            (lc_g[0] > (avg[0]+thresh*sig[0])) & 
-            (lc_g[1] > (avg[1]+thresh*sig[1])) & 
-            (lc_g[2] > (avg[2]+thresh*sig[2])) & 
+            (lc_g[0] > (ghi[0])) & 
+            (lc_g[1] > (ghi[1])) & 
+            (lc_g[2] > (ghi[2])) & 
             ~lc_g.mask[0]
             )[0]
 
@@ -89,36 +99,62 @@ def onoff(data, thresh=5.0, see=False):
 
 
         # -- plot if desired
-        if see:
+        if see or write:
             plt.clf()
             plt.subplot(211)
 
             sml = lc_g[0,iwin_on]
             big = lc_g[0,iwin_off]
+            off = [-30,0,30]
 
-            plt.plot(lc_g[0],linec[1])
-            plt.plot(iwin_on,sml,'k+',ms=20)
-            plt.plot(iwin_off,big,'k+',ms=20)
-            plt.grid(b=1)
-            plt.ylim([-20,20])
+            plt.ylim([-50,50])
+
+            plt.plot(lc_g[0]+off[0],linec[0])
+            plt.plot([0,lc_g[0].size],[glo[0]+off[0],glo[0]+off[0]],
+                     '--',color='k')
+            plt.plot([0,lc_g[0].size],[ghi[0]+off[0],ghi[0]+off[0]], 
+                     '--',color='k')
+
+            plt.plot(lc_g[1]+off[1],fillc[1])
+            plt.plot([0,lc_g[1].size],[glo[1]+off[1],glo[1]+off[1]],
+                     '--',color='k')
+            plt.plot([0,lc_g[1].size],[ghi[1]+off[1],ghi[1]+off[1]], 
+                     '--',color='k')
+            plt.plot(iwin_on,sml+off[1],'k+',ms=20)
+            plt.plot(iwin_off,big+off[1],'k+',ms=20)
+
+            plt.plot(lc_g[2]+off[2],fillc[2])
+            plt.plot([0,lc_g[2].size],[glo[2]+off[2],glo[2]+off[2]],
+                     '--',color='k')
+            plt.plot([0,lc_g[2].size],[ghi[2]+off[2],ghi[2]+off[2]], 
+                     '--',color='k')
+
 
             plt.subplot(212)
 
             plt.fill_between(np.arange(lc_m[0].size), lc_m[0], 
                              0.5*(lc_m[0].max()+lc_m[0].min()),
-                             facecolor=fillc[2],alpha=0.5)
-            plt.plot(np.arange(lc_m[0].size)/1.,lc_m[0],linec[2])
+                             facecolor=fillc[0],alpha=0.5)
+            plt.plot(np.arange(lc_m[0].size)/1.,lc_m[0],linec[0])
 
             for i in iwin_on:
                 plt.plot([i,i],[20,110],linec[0])
             for i in iwin_off:
-                plt.plot([i,i],[20,110],linec[1])
+                plt.plot([i,i],[20,110],linec[2])
 
             plt.draw()
-            plt.show()
 
-            time.sleep(1)
+            if see:
+                plt.show()
+                time.sleep(1)
+            else:
+                wpath = os.path.join(os.environ['DST_WRITE'],'onoff')
+                wfile = 'onoff_' + str(iwin).zfill(4) + '.png'
+                print("DST_ONOFF: writing plot to file {0}")
+                print("DST_ONOFF:   PATH - {0}".format(wpath))
+                print("DST_ONOFF:   FILE - {0}".format(wfile))
 
+                plt.savefig(os.path.join(wpath,wfile), clobber=True)
 
     # -- return the on/off indices
     return ind_on, ind_off
