@@ -102,6 +102,7 @@ def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
         if see or write:
             plt.clf()
             plt.subplot(211)
+            plt.ylabel(r'$\bigtriangledown$ intensity [arb units]')
 
             sml = lc_g[0,iwin_on]
             big = lc_g[0,iwin_off]
@@ -131,6 +132,9 @@ def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
 
 
             plt.subplot(212)
+
+            plt.xlabel('time [10s]')
+            plt.ylabel('intensity [arb units]')
 
             plt.fill_between(np.arange(lc_m[0].size), lc_m[0], 
                              0.5*(lc_m[0].max()+lc_m[0].min()),
