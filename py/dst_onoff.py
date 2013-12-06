@@ -103,6 +103,7 @@ def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
             plt.clf()
             plt.subplot(211)
             plt.ylabel(r'$\bigtriangledown$ intensity [arb units]')
+            plt.figtext(0.12,0.91,'window ID: '+str(iwin),fontsize=15)
 
             sml = lc_g[0,iwin_on]
             big = lc_g[0,iwin_off]
