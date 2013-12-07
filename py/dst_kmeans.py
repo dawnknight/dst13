@@ -31,7 +31,7 @@ def kmeans(wpath=os.environ['DST_WRITE'], n_clusters=12, band=[0,1,2,3]):
 
 
         # -- write to file
-        for iband in band:
+        for ii,iband in enumerate(band):
             wname  = 'kmeans_night_'+str(inight).zfill(2)+'_'+str(iband)+'.pkl'
 
             print("DST_KMEANS: Writing solution to ")
@@ -39,7 +39,7 @@ def kmeans(wpath=os.environ['DST_WRITE'], n_clusters=12, band=[0,1,2,3]):
             print("DST_KMEANS:   file = {0}".format(wname))
 
             fopen = open(os.path.join(wpath,wname),'wb')
-            pkl.dump(kmeanss[iband],fopen)
+            pkl.dump(kmeanss[ii],fopen)
             fopen.close()
 
         # -- free lcs from memory
