@@ -18,9 +18,10 @@ def kmeans_coarse(start,end,band=0):
     """ K-Means clustering on a la Brumby 2013-04-10 (see cusp.pro) """
 
     # -- utilities
-    nrow = 2160
-    ncol = 4096
-    fac  = 4
+    nrow  = 2160
+    ncol  = 4096
+    fac   = 4
+    nband = 3 if band==3 else 1
     nrow_bin = nrow/fac
     ncol_bin = ncol/fac
 
@@ -34,19 +35,30 @@ def kmeans_coarse(start,end,band=0):
     paths, files, times = fl.time_slice(start,end)
 
 
-    # -- initialize features matrix (r-band only), img container, and ones
-    lcs = np.zeros([nrow_bin*ncol_bin,files[::25].size])
-    img = np.zeros([nrow_bin*ncol_bin])
-    ons = np.ones(img.shape)
+    # -- initialize features matrix
+    ntime = files[::25].size
+    lcs   = np.zeros([nrow_bin*ncol_bin,ntime*nband])
 
 
-    # -- rebin (r-band only) and insert
+    # -- if 3-color, initialize a container to minimize read time
+    if nband==3:
+        img = np.zeros([nrow_bin,ncol_bin,3])
+
+
+    # -- rebin and insert
     for i, (p,f,t) in enumerate(zip(paths[::25],files[::25],times[::25])):
         if (i+1)%5==0:
             print("DST_KMEANS_COARSE: Loading file " + 
-                  "{0} of {1}".format(i+1,lcs.shape[1]))
-        lcs[:,i] = rebin(read_raw(f,p).astype(np.float)[:,:,band], 
-                         fac).flatten()
+                  "{0} of {1}".format(i+1,ntime))
+
+        if nband==3:
+            img[:,:,:]       = rebin(read_raw(f,p).astype(np.float),fac)
+            lcs[:,i]         = img[:,:,0].flatten()
+            lcs[:,i+ntime]   = img[:,:,1].flatten()
+            lcs[:,i+2*ntime] = img[:,:,2].flatten()
+        else:
+            lcs[:,i] = rebin(read_raw(f,p).astype(np.float)[:,:,band], 
+                             fac).flatten()
 
 
     # -- divide by L2-norm
@@ -141,7 +153,7 @@ def kmeans_coarse_run(wpath=os.environ['DST_WRITE'], band=0):
 
 
     # -- utilities
-    bname = ['r','g','b']
+    bname = ['r','g','b','rgb']
 
 
     # -- get the night times
