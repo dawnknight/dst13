@@ -8,8 +8,8 @@ width = 1
 
 
 # -- open the test file
-infile = '../output/light_curve_ex.pkl'
-lc     = gaussian_filter(pkl.load(open(infile,'rb')),width)
+#infile = '../output/light_curve_ex.pkl'
+#lc     = gaussian_filter(pkl.load(open(infile,'rb')),width)
 
 
 
@@ -68,3 +68,27 @@ for ii in range(imax):
             dvals - 
             np.dot(np.dot(np.dot(tmpl_2,dvals),ptpinv_2),tmpl_2))**2
                    ).sum()
+
+
+rat = chisq_2/chisq_1
+dif = chisq_2 - chisq_1
+avg = rat.mean()
+sig = rat.std()
+#big = where(rat > avg + 5.0*sig)[0]
+#big = where(rat > 1.5)[0]
+big = where(dif > 0.8)[0]
+rat_gf = gaussian_filter(rat,npix/2)
+
+figure(1)
+clf()
+plot(lc)
+xlim([0,3600])
+
+figure(2)
+clf()
+plot(np.arange(dif.size)+npix/2,dif)
+xlim([0,3600])
+ylim([1.0,2.0])
+
+if big.size>0:
+    plot(big,dif[big],'k+',ms=20)
