@@ -3,14 +3,15 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
 # -- things to pass
-npix  = 100
-width = 1
+npix  = 6*15
+width = 0
 
 
 # -- open the test file
 #infile = '../output/light_curve_ex.pkl'
 #lc     = gaussian_filter(pkl.load(open(infile,'rb')),width)
 
+lc = lcs.lcs[ilc,:,0]
 
 
 # -- utilities
@@ -21,11 +22,22 @@ tvals  = np.arange(float(npix))
 dvals  = np.zeros(npix)
 
 
-
 # -- set the step function
 step_l[:npix/2] = 1.0
 step_r[npix/2:] = 1.0
 
+
+# -- smooth 
+if width>0:
+    lc     = gaussian_filter(lc,width)
+    tvals  = gaussian_filter(tvals,width)
+    step_l = gaussian_filter(step_l,width)
+    step_r = gaussian_filter(step_r,width)
+
+
+# -- estimate the noise
+pixfac = 0.532/np.sqrt(float(width)) if width > 0 else 1.0 # correlated noise
+noise = (np.roll(lc,1)-lc)[1:-1].std()/np.sqrt(2.0)/pixfac
 
 
 # -- generate the two models and initialize some utilities
@@ -62,12 +74,12 @@ for ii in range(imax):
     chisq_1[ii] = ((
             dvals - 
             np.dot(np.dot(np.dot(tmpl_1,dvals),ptpinv_1),tmpl_1))**2
-                   ).sum()
+                   ).sum()/(noise**2)/(float(npix)-3)
 
     chisq_2[ii] = ((
             dvals - 
             np.dot(np.dot(np.dot(tmpl_2,dvals),ptpinv_2),tmpl_2))**2
-                   ).sum()
+                   ).sum()/(noise**2)/(float(npix)-2)
 
 
 rat = chisq_2/chisq_1
@@ -88,7 +100,8 @@ figure(2)
 clf()
 plot(np.arange(dif.size)+npix/2,dif)
 xlim([0,3600])
-ylim([1.0,2.0])
+plot([0,3600],[0.2,0.2],'g--')
+ylim([-0.1,max(1.0,dif.max()*1.2)])
 
-if big.size>0:
-    plot(big,dif[big],'k+',ms=20)
+#if big.size>0:
+#    plot(big,dif[big],'k+',ms=20)
