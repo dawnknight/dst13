@@ -2,6 +2,7 @@ import os
 import pickle as pkl
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 from .dst_window_labels import *
 from .dst_io import *
 
@@ -150,13 +151,20 @@ class LightCurves():
 
 
     # -------- calculate the L2-norm
-    def l2_norm(cls, norm='time'):
+    def l2_norm(cls, norm='time', rgb=False):
 
         """ Calculate the L2 norm of the light curves in either time
         (default) or space. """
 
         # -- calculate L2-norm
         ax = 1 if norm=='time' else 0
+
+
+        # -- handle rgb
+        if rgb:
+            return np.sqrt((
+                    np.hstack([ilc for ilc in cls.lcs.transpose(2,0,1)])**2
+                    ).sum(axis=ax))
 
 
         # -- return transposed (for speed later)
@@ -229,6 +237,49 @@ class LightCurves():
 
         # -- extract the components and return as list
         return pcas
+
+
+
+    # -------- K-means clustering
+    def k_means(cls, n_clusters, band=0):
+
+        # -- utilities
+        if type(band)==int:
+            band = [band]
+
+        bname = ['r','g','b','rgb']
+        l2    = cls.l2_norm()
+
+
+        # -- kmeans
+        kmeanss = []
+        for iband in band:
+            print("DST_LIGHT_CURVES: Running K-Means with " +
+                  "{0} components in {1}-band...".format(n_clusters,
+                                                         bname[iband]))
+
+            # -- careful about scikit conventions
+            try:
+                kmeans_ = KMeans(init='random',n_clusters=n_clusters,n_init=10)
+            except:
+                kmeans_ = KMeans(init='random',k=n_clusters,n_init=10)
+
+            # -- handle rgb
+            if iband==3:
+                l2_rgb = cls.l2_norm(rgb=True)
+
+                kmeans_.fit( 
+                    (np.hstack(
+                            [ilc for ilc in cls.lcs.transpose(2,0,1)]
+                            ).T/l2_rgb
+                     ).T
+                    )
+            else:
+                kmeans_.fit((cls.lcs[:,:,iband].T/l2[iband]).T)
+
+            kmeanss.append(kmeans_)
+
+        return kmeanss
 
 
 
