@@ -13,7 +13,7 @@ from .dst_night_times import *
 #  2013/11/25 - Written by Greg Dobler (CUSP/NYU)
 # -------- 
 
-def kmeans_coarse(start,end):
+def kmeans_coarse(start,end,band=0):
 
     """ K-Means clustering on a la Brumby 2013-04-10 (see cusp.pro) """
 
@@ -45,7 +45,8 @@ def kmeans_coarse(start,end):
         if (i+1)%5==0:
             print("DST_KMEANS_COARSE: Loading file " + 
                   "{0} of {1}".format(i+1,lcs.shape[1]))
-        lcs[:,i] = rebin(read_raw(f,p).astype(np.float)[:,:,0],fac).flatten()
+        lcs[:,i] = rebin(read_raw(f,p).astype(np.float)[:,:,band], 
+                         fac).flatten()
 
 
     # -- divide by L2-norm
@@ -130,29 +131,40 @@ def kmeans_coarse_plot(kfile,outname):
 # -------- 
 #  run coarse K-Means for each night
 # -------- 
-def kmeans_coarse_run(wpath=os.environ['DST_WRITE']):
+def kmeans_coarse_run(wpath=os.environ['DST_WRITE'], band=0):
 
     """ Run the coarse K-Means for the night time runs """
+
+    # -- defaults
+    if type(band)==int:
+        band = [band]
+
+
+    # -- utilities
+    bname = ['r','g','b']
+
 
     # -- get the night times
     start, end = night_times()
 
 
-    # -- loop through nights, compute K-Means, and write to file
-    for i, (st,en) in enumerate(zip(start,end)):
-        print("DST_KMEANS_COARSE_RUN: Running K-Means for night {0}".format(i))
-        print("DST_KMEANS_COARSE_RUN:   {0}  {1}".format(st,en))
+    # -- loop through nights (and bands), compute K-Means, and write to file
+    for iband in band:
+        for i, (st,en) in enumerate(zip(start,end)):
+            print("DST_KMEANS_COARSE_RUN: Running K-Means for night " + 
+                  "{0} in {1}-band".format(i,bname[iband]))
+            print("DST_KMEANS_COARSE_RUN:   {0}  {1}".format(st,en))
 
-        km    = kmeans_coarse(st,en)
-        wfile = os.path.join(wpath,'kmeans_coarse_night_' + 
-                             str(i).zfill(2) + '.pkl')
+            km    = kmeans_coarse(st,en,iband)
+            wfile = os.path.join(wpath,'kmeans_coarse_night_' + 
+                                 str(i).zfill(2) + '_' + str(iband) + '.pkl')
 
-        print("DST_KMEANS_COARSE_RUN: Writing solution to")
-        print("DST_KMEANS_COARSE_RUN:   {0}".format(wfile))
+            print("DST_KMEANS_COARSE_RUN: Writing solution to")
+            print("DST_KMEANS_COARSE_RUN:   {0}".format(wfile))
 
-        fopen = open(wfile,'wb')
-        pkl.dump(km,fopen)
-        fopen.close()
+            fopen = open(wfile,'wb')
+            pkl.dump(km,fopen)
+            fopen.close()
 
 
     return
