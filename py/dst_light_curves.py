@@ -17,13 +17,13 @@ class LightCurves():
     # -------- initialize the class
     def __init__(cls, start, end, dpath=os.environ['DST_DATA'], 
                  wpath=os.environ['DST_WRITE'], infile=None, 
-                 registered=True, sample=1):
+                 registered=True, sample=1, noerr=False):
         """ Make night time light curves for start and end times """
 
         # -- if desired, read in pre-computed light curves
         if infile:
             try:
-                cls.read_files(infile)
+                cls.read_files(infile, noerr=noerr)
             except:
                 print("DST_LIGHT_CURVES: ERROR - INFILES NOT FOUND!!!")
                 return
@@ -89,7 +89,7 @@ class LightCurves():
         cls.lcs   = np.zeros([cls.nwin,cls.ntime,3])
         cls.std   = np.zeros([cls.nwin,cls.ntime,3])
         cls.err   = np.zeros([cls.nwin,cls.ntime,3])
-        cls.bse   = np.zeros([cls.nwin,cls.ntime,3])
+#        cls.bse   = np.zeros([cls.nwin,cls.ntime,3])
 
 
         # -- initialize color vectors
@@ -313,7 +313,7 @@ class LightCurves():
 
 
     # -------- read out class contents from files
-    def read_files(cls, inbase):
+    def read_files(cls, inbase, noerr=False):
 
         """ Write out the contents of this class to a file """
 
@@ -333,34 +333,46 @@ class LightCurves():
 
 
         # -- read the light curves
+        print("DST_LIGHT_CURVES:   reading lcs...")
+
         infile  = os.path.join(inpath,lcsfile)
         fopen   = open(infile,'rb')
         cls.lcs = pkl.load(fopen)
         fopen.close()
 
 
-        # -- read the standard deviation
-        infile  = os.path.join(inpath,stdfile)
-        fopen   = open(infile,'rb')
-        cls.std = pkl.load(fopen)
-        fopen.close()
+        # -- handle light weight case
+        if noerr:
+            cls.std = np.zeros(cls.lcs.shape)
+            cls.err = np.zeros(cls.lcs.shape)
+#            cls.bse = np.zeros(cls.lcs.shape)
+        else:
+            # -- read the standard deviation
+            print("DST_LIGHT_CURVES:   reading std...")
 
+            infile  = os.path.join(inpath,stdfile)
+            fopen   = open(infile,'rb')
+            cls.std = pkl.load(fopen)
+            fopen.close()
 
-        # -- read the error on the mean
-        infile  = os.path.join(inpath,errfile)
-        fopen   = open(infile,'rb')
-        cls.err = pkl.load(fopen)
-        fopen.close()
+            # -- read the error on the mean
+            print("DST_LIGHT_CURVES:   reading err...")
 
+            infile  = os.path.join(inpath,errfile)
+            fopen   = open(infile,'rb')
+            cls.err = pkl.load(fopen)
+            fopen.close()
 
-        # -- write the bootstrap errors (not implemented yet)
-#        infile  = os.path.join(inpath,bsefile)
-#        fopen   = open(infile,'rb')
-#        cls.bse = pkl.load(fopen)
-#        fopen.close()
+            # -- write the bootstrap errors (not implemented yet)
+#            infile  = os.path.join(inpath,bsefile)
+#            fopen   = open(infile,'rb')
+#            cls.bse = pkl.load(fopen)
+#            fopen.close()
 
 
         # -- read the parameters
+        print("DST_LIGHT_CURVES:   reading par...")
+
         infile    = os.path.join(inpath,parfile)
         fopen     = open(infile,'rb')
         cls.start = pkl.load(fopen)
