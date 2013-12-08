@@ -90,21 +90,32 @@ big = where(dif > 0.8)[0]
 figure(1, figsize=[5.0,10.])
 md = np.median(lc)
 mx = lc.max()
+mn = lc.min()
 clf()
 subplot(211)
 #fill_between(np.arange(lc.size),lc,md,
 #             facecolor='#FF6600',alpha=0.5)
 plot(lc)
 xlim([0,3600])
-ylim([2*md-1.2*mx,1.2*mx])
+ylim([0.8*mn,1.2*mx])
 
 subplot(212)
-fill_between(np.arange(dif.size)+npix/2,gaussian_filter(dif,5),facecolor='#FF6600',alpha=0.5)
-plot(np.arange(dif.size)+npix/2,gaussian_filter(dif,5))
+#fill_between(np.arange(dif.size)+npix/2,gaussian_filter(dif,3),facecolor='#FF6600',alpha=0.5)
+fill_between(np.arange(dif.size)+npix/2,dif,facecolor='#FF6600',alpha=0.5)
+plot(np.arange(dif.size)+npix/2,dif)
 xlim([0,3600])
-plot([0,3600],[1.0,1.0],'g--')
 #ylim([-0.1,max(1.0,dif.max()*1.2)])
 ylim([-0.1,2.0])
+
+avg = dif.mean()
+sig = dif.std()
+thresh = np.max([1.0,avg+5*sig])
+
+w = where(dif > thresh)[0]
+plot(w+npix/2,dif[w],'k+',ms=20)
+plot([0,3600],[thresh,thresh],'g--')
+plot([0,3600],[avg+5*sig,avg+5*sig],'b--')
+ylim([-0.1,np.max([2*thresh,1.2*dif.max()])])
 
 figtext(0.15,0.93,'window ID:'+str(ilc),fontsize=15)
 
