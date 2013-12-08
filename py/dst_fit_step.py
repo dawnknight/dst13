@@ -3,7 +3,7 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
 # -- things to pass
-npix  = 6*15
+npix  = 6*5
 width = 0
 
 
@@ -11,9 +11,9 @@ width = 0
 #infile = '../output/light_curve_ex.pkl'
 #lc     = gaussian_filter(pkl.load(open(infile,'rb')),width)
 
-lc = np.ma.array(lcs.lcs[ilc,:,0])
+lc = np.ma.array(lcs.lcs[ilc])
 lc.mask = (lc < 1.0)
-
+nband=3
 
 # -- utilities
 step_l = np.zeros(npix)
@@ -56,70 +56,96 @@ mvals_2 = np.zeros(npix)
 
 
 # -- find the range of analysis and initialize chisq arrays
-ioff    = lc.size % npix
-imax    = lc.size-ioff-npix
-chisq_1 = np.zeros(imax)
-chisq_2 = np.zeros(imax)
+ioff    = lc.shape[0] % npix
+imax    = lc.shape[0]-ioff-npix
+chisq_1 = np.zeros([nband,imax])
+chisq_2 = np.zeros([nband,imax])
 
 
 # -- get a slice of the light curve and calculate chisq
-for ii in range(imax):
+for iband in (0,1,2):
+    for ii in range(imax):
 
-    dvals[:] = lc[ii:ii+npix]
+        dvals[:] = lc[ii:ii+npix,iband]
 
-    if True in dvals.mask:
-        continue
+        if True in dvals.mask:
+            continue
 
-    mod1 = np.dot(np.dot(np.dot(tmpl_1,dvals),ptpinv_1),tmpl_1)
-    mod2 = np.dot(np.dot(np.dot(tmpl_2,dvals),ptpinv_2),tmpl_2)
+        mod1 = np.dot(np.dot(np.dot(tmpl_1,dvals),ptpinv_1),tmpl_1)
+        mod2 = np.dot(np.dot(np.dot(tmpl_2,dvals),ptpinv_2),tmpl_2)
 
-    chisq_1[ii] = ((
+        chisq_1[iband,ii] = ((
             dvals - 
             np.dot(np.dot(np.dot(tmpl_1,dvals),ptpinv_1),tmpl_1))**2
-                   ).sum()/(noise**2)/(float(npix)-3)
+        ).sum()/(noise**2)/(float(npix)-3)
 
-    chisq_2[ii] = ((
+        chisq_2[iband,ii] = ((
             dvals - 
             np.dot(np.dot(np.dot(tmpl_2,dvals),ptpinv_2),tmpl_2))**2
-                   ).sum()/(noise**2)/(float(npix)-2)
+        ).sum()/(noise**2)/(float(npix)-2)
 
 
 dif = chisq_2 - chisq_1
-big = where(dif > 0.8)[0]
+avg = dif.mean(1)
+sig = dif.std(1)
+thresh = (avg+10*sig)#.clip(1.0,1e6)
 
-figure(1, figsize=[5.0,10.])
-md = np.median(lc)
+w = where(
+    (dif[0] > thresh[0]) &
+    (dif[1] > thresh[1]) &
+    (dif[2] > thresh[2])
+)[0]
 mx = lc.max()
 mn = lc.min()
+
+figure(1, figsize=[10.0,10.])
 clf()
-subplot(211)
-#fill_between(np.arange(lc.size),lc,md,
-#             facecolor='#FF6600',alpha=0.5)
-plot(lc)
+
+subplot(221)
+plot(lc[:,0],'r',alpha=0.5)
+plot(lc[:,1],'g',alpha=0.5)
+plot(lc[:,2],'b',alpha=0.5)
 xlim([0,3600])
-ylim([0.8*mn,1.2*mx])
+ymax = 1.2*mx
+ylim([0.8*mn,ymax])
+ylabel('intensity [arb. units]')
+figtext(0.13,0.86,'window #'+str(ilc),fontsize=15,backgroundcolor='w')
+figtext(0.13,0.86,'window #'+str(ilc),fontsize=15)
 
-subplot(212)
-#fill_between(np.arange(dif.size)+npix/2,gaussian_filter(dif,3),facecolor='#FF6600',alpha=0.5)
-fill_between(np.arange(dif.size)+npix/2,dif,facecolor='#FF6600',alpha=0.5)
-plot(np.arange(dif.size)+npix/2,dif)
+subplot(222)
+fill_between(np.arange(dif.shape[1])+npix/2,dif[0],facecolor='r',edgecolor='r',alpha=0.5)
 xlim([0,3600])
-#ylim([-0.1,max(1.0,dif.max()*1.2)])
-ylim([-0.1,2.0])
+#ylim([-1.2*np.abs(dif.min()),np.max([2*thresh[0],1.2*dif[0].max()])])
+ymax = np.max([2*thresh[0],1.2*dif[0].max()])
+ylim([0.0,ymax])
+plot([0,3600],[thresh[0],thresh[0]],'g--')
+plot([0,3600],[avg[0]+5*sig[0],avg[0]+5*sig[0]],'b--')
+plot(w+npix/2,(dif[0])[w],'k+',ms=20)
+text(2750,0.87*ymax,r'$\Delta \chi^2_{R}$',fontsize=20)
 
-avg = dif.mean()
-sig = dif.std()
-thresh = np.max([1.0,avg+5*sig])
+subplot(223)
+fill_between(np.arange(dif.shape[1])+npix/2,dif[1],facecolor='g',edgecolor='g',alpha=0.5)
+xlim([0,3600])
+#ylim([-1.2*np.abs(dif.min()),np.max([2*thresh[1],1.2*dif[1].max()])])
+ymax = np.max([2*thresh[1],1.2*dif[1].max()])
+ylim([0.0,ymax])
+plot([0,3600],[thresh[1],thresh[1]],'g--')
+plot([0,3600],[avg[1]+5*sig[1],avg[1]+5*sig[1]],'b--')
+plot(w+npix/2,(dif[1])[w],'k+',ms=20)
+text(2750,0.87*ymax,r'$\Delta \chi^2_{G}$',fontsize=20)
 
-w = where(dif > thresh)[0]
-plot(w+npix/2,dif[w],'k+',ms=20)
-plot([0,3600],[thresh,thresh],'g--')
-plot([0,3600],[avg+5*sig,avg+5*sig],'b--')
-ylim([-0.1,np.max([2*thresh,1.2*dif.max()])])
+subplot(224)
+fill_between(np.arange(dif.shape[1])+npix/2,dif[2],facecolor='b',edgecolor='b',alpha=0.5)
+xlim([0,3600])
+#ylim([-1.2*np.abs(dif.min()),np.max([2*thresh[2],1.2*dif[2].max()])])
+ymax = np.max([2*thresh[2],1.2*dif[2].max()])
+ylim([0.0,ymax])
+plot([0,3600],[thresh[2],thresh[2]],'g--')
+plot([0,3600],[avg[2]+5*sig[2],avg[2]+5*sig[2]],'b--')
+plot(w+npix/2,(dif[2])[w],'k+',ms=20)
+text(2750,0.87*ymax,r'$\Delta \chi^2_{B}$',fontsize=20)
 
-figtext(0.15,0.93,'window ID:'+str(ilc),fontsize=15)
+
+
 
 draw()
-
-#if big.size>0:
-#    plot(big,dif[big],'k+',ms=20)
