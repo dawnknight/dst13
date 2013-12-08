@@ -98,6 +98,8 @@ w = where(
 mx = lc.max()
 mn = lc.min()
 
+htimes = [str(i%24).zfill(2) + ":00" for i in range(19,30)]
+
 figure(1, figsize=[10.0,10.])
 clf()
 
@@ -108,6 +110,7 @@ plot(lc[:,2],'b',alpha=0.5)
 xlim([0,3600])
 ymax = 1.2*mx
 ylim([0.8*mn,ymax])
+xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
 ylabel('intensity [arb. units]')
 figtext(0.13,0.86,'window #'+str(ilc),fontsize=15,backgroundcolor='w')
 figtext(0.13,0.86,'window #'+str(ilc),fontsize=15)
@@ -121,6 +124,7 @@ ylim([0.0,ymax])
 plot([0,3600],[thresh[0],thresh[0]],'g--')
 plot([0,3600],[avg[0]+5*sig[0],avg[0]+5*sig[0]],'b--')
 plot(w+npix/2,(dif[0])[w],'k+',ms=20)
+xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
 text(2750,0.87*ymax,r'$\Delta \chi^2_{R}$',fontsize=20)
 
 subplot(223)
@@ -132,6 +136,7 @@ ylim([0.0,ymax])
 plot([0,3600],[thresh[1],thresh[1]],'g--')
 plot([0,3600],[avg[1]+5*sig[1],avg[1]+5*sig[1]],'b--')
 plot(w+npix/2,(dif[1])[w],'k+',ms=20)
+xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
 text(2750,0.87*ymax,r'$\Delta \chi^2_{G}$',fontsize=20)
 
 subplot(224)
@@ -143,6 +148,7 @@ ylim([0.0,ymax])
 plot([0,3600],[thresh[2],thresh[2]],'g--')
 plot([0,3600],[avg[2]+5*sig[2],avg[2]+5*sig[2]],'b--')
 plot(w+npix/2,(dif[2])[w],'k+',ms=20)
+xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
 text(2750,0.87*ymax,r'$\Delta \chi^2_{B}$',fontsize=20)
 
 
