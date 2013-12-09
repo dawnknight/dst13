@@ -177,5 +177,6 @@ text(3250,1.05*(avg[2]+10*sig[2]),r'$10\sigma$',fontsize=15)
 
 draw()
 
+print("DST_FIT_STEP: writing window # {0} to png".format(ilc))
 savefig('../output/fitstep/fitstep_night_'+str(night).zfill(2)+'_'+
         str(ilc).zfill(4)+'.png', clobber=True)
