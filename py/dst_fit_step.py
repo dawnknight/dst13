@@ -1,6 +1,7 @@
 import pickle as pkl
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
+from matplotlib.pyplot import *
 
 # -- things to pass
 npix  = 6*5
@@ -119,13 +120,13 @@ plot(lc[:,2]+off[2],fillc[2])
 xlim([0,3600])
 #ymax = 1.2*mx + off[2]
 #ymin = 0.8*mn + off[0]
-ymax = 180
-ymin = 10
-ylim([ymin,ymax])
+#ymax = 0
+#ymin = -30
+#ylim([ymin,ymax])
 xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
 ylabel('intensity [arb. units]')
-figtext(0.13,0.86,'window #'+str(ilc),fontsize=15,backgroundcolor='w')
-figtext(0.13,0.86,'window #'+str(ilc),fontsize=15)
+figtext(0.3,0.86,'window #'+str(ilc),fontsize=15,backgroundcolor='w')
+figtext(0.3,0.86,'window #'+str(ilc),fontsize=15)
 
 subplot(222)
 fill_between(np.arange(dif.shape[1])+npix/2,dif[0],facecolor=linec[0],
@@ -175,3 +176,6 @@ text(3250,1.05*(avg[2]+10*sig[2]),r'$10\sigma$',fontsize=15)
 
 
 draw()
+
+savefig('../output/fitstep/fitstep_night_'+str(night).zfill(2)+'_'+
+        str(ilc).zfill(4)+'.png', clobber=True)
