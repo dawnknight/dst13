@@ -286,16 +286,29 @@ class LightCurves():
     # -------- calculate the auto-correlation matrix
     def auto_correlate(cls, band):
 
-        # -- loop through bands
-        if band is not list:
+        # -- set band to list
+        if type(band)!=list:
             band = [band]
+
+
+        # -- handle rgb
+        if band[0]==3:
+            l2     = cls.l2_norm(rgb=True)
+            lc_rgb = cls.lcs.transpose(0,2,1).reshape(cls.nwin,3*cls.ntime)
+
+            lc_rgb[:,:] = (lc_rgb.T - lc_rgb.mean(1)).T
+            lc_rgb[:,:] = (lc_rgb.T/np.sqrt((lc_rgb**2).sum(1))).T
+
+            print("DST_LIGHT_CURVES: calculating auto-correlation matrix " + 
+                  "for rgb...")
+
+            return np.dot(lc_rgb,lc_rgb.T)
 
 
         # -- utilities
         bname    = ['r','g','b']
         cc       = []
         lcs_band = np.zeros(cls.lcs.shape[0:2])
-        l2       = cls.l2_norm()
 
 
         # -- loop through bands, mean subtract, normalize, auto-correlate
