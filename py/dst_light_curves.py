@@ -283,6 +283,42 @@ class LightCurves():
 
 
 
+    # -------- calculate the auto-correlation matrix
+    def auto_correlate(cls, band):
+
+        # -- loop through bands
+        if band is not list:
+            band = [band]
+
+
+        # -- utilities
+        bname    = ['r','g','b']
+        cc       = []
+        lcs_band = np.zeros(cls.lcs.shape[0:2])
+        l2       = cls.l2_norm()
+
+
+        # -- loop through bands, mean subtract, normalize, auto-correlate
+        for ib in band:
+            lcs_band[:,:] = (cls.lcs[:,:,ib].T - 
+                             cls.lcs[:,:,ib].mean(1)).T
+
+            lcs_band[:,:]  = (lcs_band.T/np.sqrt((lcs_band**2).sum(1))).T
+
+            print("DST_LIGHT_CURVES: calculating auto-correlation matrix " + 
+                  "for {0}-band...".format(bname[ib]))
+
+            cc.append(np.dot(lcs_band,lcs_band.T))
+
+
+        # -- return
+        if len(band)>1:
+            return cc
+        else:
+            return cc[0]
+
+
+
     # -------- write out class contents to files
     def write_files(cls, outbase):
 
