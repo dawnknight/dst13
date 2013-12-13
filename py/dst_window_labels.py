@@ -37,4 +37,15 @@ class WindowLabels():
         cls.lbound = [0] + lbound + [cls.labsrt.size] # boundaries of labels
         cls.nwin   = len(cls.lbound) - 1 # total number of windows
 
+        # -- set the position labels
+        cls.rvec = np.zeros(cls.nwin)
+        cls.cvec = np.zeros(cls.nwin)
+
+        for iwin in range(1,cls.nwin+1):
+            cls.rvec[iwin-1] = cls.wpix[0][cls.labvec==iwin].astype(np.float
+                                                                    ).mean()
+            cls.cvec[iwin-1] = cls.wpix[1][cls.labvec==iwin].astype(np.float
+                                                                    ).mean()
+
+
         return
