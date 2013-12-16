@@ -32,8 +32,8 @@ def kmeans(wpath=os.environ['DST_WRITE'], n_clusters=12, band=[0,1,2,3]):
 
         # -- write to file
         for ii,iband in enumerate(band):
-            wname  = 'kmeans' + str(n_clusters).zfill(2) + '_night_' + 
-            str(inight).zfill(2) + '_' + str(iband) + '.pkl'
+            wname  = 'kmeans_' + str(n_clusters).zfill(2) + '_night_' + \
+                str(inight).zfill(2) + '_' + str(iband) + '.pkl'
 
             print("DST_KMEANS: Writing solution to ")
             print("DST_KMEANS:   path = {0}".format(wpath))
