@@ -130,6 +130,8 @@ def lc_matrix_plot(lcs, outfile, km=None, band=0, title=None):
 
 def make_plots():
 
+    """ Run all plots """
+
     # -- light curve matrix and sorted
     lcs01 = LightCurves('','',infile='lcs_night_01',noerr=True)
     km01  = 'kmeans_night_01'
