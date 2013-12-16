@@ -2,9 +2,11 @@ import os
 import pickle as pkl
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from .dst_io import *
 from .dst_light_curves import *
 from .dst_time_ticks import *
+from .dst_kmeans import *
 
 # -------- 
 #  Generate plots for the DST13 lightscape project
@@ -123,6 +125,102 @@ def lc_matrix_plot(lcs, outfile, km=None, band=0, title=None):
     plt.close()
 
     return
+
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+
+def kmeans_plot(night, band):
+
+    """ Plot the K-Means cluster center and tagged windows overlay """
+
+    # -- read in the K-Means file
+    kmfile = 'kmeans_night_' + str(night).zfill(2) + '_' + str(band) + '.pkl'
+    wpath  = os.environ['DST_WRITE']
+
+    print("DST_KMEANS: reading in K-Means file")
+    print("DST_KMEANS:   path = {0}".format(wpath))
+    print("DST_KMEANS:   file = {0}".format(kmfile))
+
+    fopen = open(os.path.join(wpath,kmfile),'rb')
+    km    = pkl.load(fopen)
+    fopen.close()
+
+
+    # -- utilities
+    nclus, ntime = km.cluster_centers_.shape
+    tcks, htimes = time_ticks()
+
+    outname = 'kmeans_night_' + str(night).zfill(2) + '_' + str(band)
+    nclus  = km.n_clusters
+    outp   = os.environ['DST_WRITE']
+    outn   = [outname + '_' + str(i+1).zfill(2) + '.png' for i in range(nclus)]
+    times  = (np.arange(ntime)*10.)/60.
+    clmin  = km.cluster_centers_.min()
+    clmax  = km.cluster_centers_.max()
+    maps   = read_kmeans_maps(night,band)
+
+
+    # -- get the background image
+    bkg = np.ma.array(read_raw('oct08_2013-10-25-175504-181179.raw',
+                               os.path.join(os.environ['DST_DATA'],
+                                            '11/15/16.23.43')
+                               )[20:-20,20:-20,:].astype(np.float).mean(2))
+
+
+    # -- set limits and colors
+    mn    = bkg.min() + 0.2*np.abs(bkg.min())
+    mx    = bkg.max() - 0.2*np.abs(bkg.max())
+    color = cm.get_cmap('bone')
+    color.set_bad(color='#FF6600')
+
+
+    # -- make the plot
+    for i in range(nclus):
+
+        bkg.mask = maps[i]>0 # set window labels
+
+        outfile = os.path.join(outp,outn[i])
+
+        print("DST_PLOTS: writing file {0}".format(outfile))
+
+        plt.figure(figsize=[7.5,8.5])
+        plt.subplot(212)
+        if band==3:
+            plt.fill_between(range(ntime/3), km.cluster_centers_[i,0:ntime/3],
+                             color='#990000',alpha=0.17)
+            plt.fill_between(range(ntime/3), 
+                             km.cluster_centers_[i,ntime/3:2*ntime/3],
+                             color=fillc[1],alpha=0.17)
+            plt.fill_between(range(ntime/3), 
+                             km.cluster_centers_[i,2*ntime/3:ntime],
+                             color=fillc[2],alpha=0.17)
+            plt.plot(range(ntime/3), km.cluster_centers_[i,0:ntime/3],
+                             color=linec[0])
+            plt.plot(range(ntime/3), 
+                             km.cluster_centers_[i,ntime/3:2*ntime/3],
+                             color=linec[1])
+            plt.plot(range(ntime/3), 
+                             km.cluster_centers_[i,2*ntime/3:ntime],
+                             color=linec[2])
+        else:
+            plt.fill_between(range(ntime),km.cluster_centers_[i],clmin,
+                             color=fillc[2],alpha=0.5)
+            plt.plot(range(ntime), km.cluster_centers_[i],color=linec[2],lw=2)
+        plt.xticks(tcks, htimes)
+        plt.xlabel('time [HH:MM]')
+        plt.ylabel('amplitude [arb units]')
+        plt.figtext(0.15,0.5,'cluster #' + str(i+1), fontsize=15)
+        plt.grid(b=1)
+        plt.xlim([0,3600])
+        plt.ylim([clmin,clmax])
+
+        plt.subplot(211)
+        plt.imshow(bkg,cmap=color,clim=[mn,mx])
+        plt.axis('off')
+
+        plt.savefig(outfile, clobber=True)
+        plt.close()
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
