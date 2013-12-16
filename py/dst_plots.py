@@ -19,7 +19,13 @@ def image_hires(inpath='11/28/14.28.45/',
     11/28/13 at ~2:30pm. """
 
     # -- read in the data
-    img = read_raw(infile, os.path.join(os.environ['DST_DATA'],inpath))
+    rpath = os.path.join(os.environ['DST_DATA'],inpath)
+
+    print("DST_PLOTS: reading in image")
+    print("DST_PLOTS:   path = {0}".format(rpath))
+    print("DST_PLOTS:   file = {0}".format(infile))
+
+    img = read_raw(infile, rpath)
 
 
     # -- make the plot
@@ -28,6 +34,13 @@ def image_hires(inpath='11/28/14.28.45/',
     plt.axis('off')
     plt.subplots_adjust(0,0,1,1)
     plt.show()
+
+
+    # -- write to file
+    print("DST_PLOTS: writing output file")
+    print("DST_PLOTS:   path = {0}".format(wpath))
+    print("DST_PLOTS:   file = {0}".format(wfile))
+
     plt.savefig(os.path.join(wpath,wfile),clobber=True)
     plt.close()
 
