@@ -24,7 +24,7 @@ def window_labels(hand=False):
 # -------- 
 class WindowLabels():
 
-    def __init__(cls, hand=False):
+    def __init__(cls, hand=False, nopos=False):
         """ class containing window labels and useful parameters """
 
         # -- get the window labels
@@ -41,11 +41,11 @@ class WindowLabels():
         cls.rvec = np.zeros(cls.nwin)
         cls.cvec = np.zeros(cls.nwin)
 
-        for iwin in range(1,cls.nwin+1):
-            cls.rvec[iwin-1] = cls.wpix[0][cls.labvec==iwin].astype(np.float
-                                                                    ).mean()
-            cls.cvec[iwin-1] = cls.wpix[1][cls.labvec==iwin].astype(np.float
-                                                                    ).mean()
+        if not nopos:
+            for iwin in range(1,cls.nwin+1):
+                index            = cls.labvec==iwin
+                cls.rvec[iwin-1] = cls.wpix[0][index].astype(np.float).mean()
+                cls.cvec[iwin-1] = cls.wpix[1][index].astype(np.float).mean()
 
 
         return
