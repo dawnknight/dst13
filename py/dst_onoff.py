@@ -9,7 +9,7 @@ import scipy.ndimage as nd
 #
 #  2013/12/04 - Written by Greg Dobler (CUSP/NYU)
 # -------- 
-def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
+def onoff(data, thresh=5.0, fsize=6, see=False, write=False):
 
     # -- utilities
     linec    = ['#990000','#006600', '#0000FF']
@@ -61,7 +61,7 @@ def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
 
 
         # -- median filter the gradient
-        lc_g[:,:] = np.roll(lc,1,1) - np.roll(lc,-1,1)
+        lc_g[:,:] = np.roll(lc_m,1,1) - np.roll(lc_m,-1,1)
 
 
         # -- make sure the gradient mask is the right size
@@ -151,7 +151,7 @@ def onoff(data, thresh=5.0, fsize=20, see=False, write=False):
 
             if see:
                 plt.show()
-                time.sleep(1)
+                time.sleep(2)
             else:
                 wpath = os.path.join(os.environ['DST_WRITE'],'onoff')
                 wfile = 'onoff_' + str(iwin).zfill(4) + '.png'
