@@ -13,7 +13,7 @@ from matplotlib.pyplot import *
 # -------- 
 
 def fit_step(lcs, width=180, smooth=False, see=False, wnum=None, 
-             wrng=None, chism=None, xcheck=False):
+             wrng=None, chism=None, xcheck=True):
 
     # -- utilities
     npix      = width
@@ -188,7 +188,7 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None,
         else:
             ind_onoff.append(np.array([],dtype=np.int))
 
-    return ind_onoff, chisq_1, chisq_2
+    return ind_onoff
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
