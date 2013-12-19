@@ -15,3 +15,4 @@ from dst13.py.dst_kmeans import *
 from dst13.py.dst_plots import *
 from dst13.py.dst_time_ticks import *
 from dst13.py.dst_reference_image import *
+from dst13.py.dst_fit_step import *
