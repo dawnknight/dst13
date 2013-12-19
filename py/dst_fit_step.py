@@ -12,7 +12,8 @@ from matplotlib.pyplot import *
 #  2013/12/17 - Written by Greg Dobler (CUSP/NYU)
 # -------- 
 
-def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
+def fit_step(lcs, width=180, smooth=False, see=False, wnum=None, 
+             wrng=None, chism=None, xcheck=False):
 
     # -- utilities
     npix      = width
@@ -26,7 +27,11 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
     ilc_mx    = wnum+1 if wnum!=None else lcs.lcs.shape[0]
     lc        = np.ma.zeros(lcs.lcs[0].shape)
     mask      = np.zeros(lcs.lcs[0].shape)
+    chisq_thr = 1.0
     ind_onoff = []
+
+    if wrng!=None:
+        ilc_mn, ilc_mx = wrng
 
 
     # -- set the step function
@@ -65,6 +70,10 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
 
     # -- loop through light curves
     for ilc in range(ilc_mn,ilc_mx):
+
+        # -- alert the user
+        print("DST_FIT_STEP: running lightcurve " + 
+              "{0} of {1}...".format(ilc+1,ilc_mx))
 
         # -- set the light curve
         lc[:,:] = np.ma.array(lcs.lcs[ilc])
@@ -115,39 +124,71 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
                                      ).sum()/(noise[iband]**2)/(float(npix)-2)
 
         # -- commpute Delta chi^2 and set thresholds
+        if chism!=None:
+            chisq_1 = gaussian_filter(chisq_1,chism)
+            chisq_2 = gaussian_filter(chisq_2,chism)
+
         dif = chisq_2 - chisq_1
         avg = dif.mean(1)
         sig = dif.std(1)
 
+        # -- threshold on Delta chi^2
+#        if dif.max()<chisq_thr:
+#            ind_onoff.append(np.array([],dtype=np.int))
+#
+#            print "bailing out, delta chi^2 is too small..."
+#            continue
+
+        # -- outlier rejection
         for _ in range(20):
             thresh = (avg+5*sig)#.clip(1.0,1e6)
             w = np.where((dif[0]<thresh[0]) &
                          (dif[1]<thresh[1]) &
-                         (dif[2]<thresh[2]) 
+                         (dif[2]<thresh[2])
                          )[0]
-            avg = np.array([dif[i][w].mean() for i in (0,1,2)])
-            sig = np.array([dif[i][w].std() for i in (0,1,2)])
+            if w.size>0:
+                avg = np.array([dif[i][w].mean() for i in (0,1,2)])
+                sig = np.array([dif[i][w].std() for i in (0,1,2)])
 
-        thresh = (avg+10*sig)#.clip(1.0,1e6)
+        thresh = (avg+20*sig)#.clip(1.0,1e6)
 
         # -- add outliers to list
         w = np.where(
             (dif[0] > thresh[0]) &
             (dif[1] > thresh[1]) &
+#            (dif[2] > thresh[2]) &
+#            (dif[0] > chisq_thr) &
+#            (dif[1] > chisq_thr) &
+#            (dif[2] > chisq_thr)
             (dif[2] > thresh[2])
             )[0]
 
-        # -- find the peaks
-        bound = [0] + list(np.where((w- np.roll(w,1))>10)[0]) + [w.size]
-        peaks = np.array([w[bound[i]] + \
-                              np.argmax(dif[0,w[bound[i]:bound[i+1]]]) \
-                              for i in range(len(bound)-1)]) + npix/2
+        # -- check for transitions
+        if len(w)>0:
 
+            # -- find the peaks
+            bound = [0] + list(np.where((w- np.roll(w,1))>10)[0]) + [w.size]
+            peaks = [w[bound[i]] + npix/2 + \
+                         np.argmax(dif[0,w[bound[i]:bound[i+1]]]) \
+                         for i in range(len(bound)-1)]
 
-        # -- add to list
-        ind_onoff.append(peaks*onoff[0,peaks-npix/2])
+            # -- check left and right
+            if xcheck:
+                for ip in peaks:
+                    mn_l  = lc[ip-10:ip].mean(1).mean()
+                    err_l = lc[ip-10:ip].mean(1).std()/np.sqrt(10.)
+                    mn_r  = lc[ip:ip+10].mean(1).mean()
 
-    return ind_onoff, chisq_1, chisq_2, onoff
+                    if abs(mn_r-mn_l)<2.0*err_l:
+                        peaks.remove(ip)
+
+            # -- add to list
+            peaks = np.array(peaks)
+            ind_onoff.append(peaks*onoff[0,peaks-npix/2])
+        else:
+            ind_onoff.append(np.array([],dtype=np.int))
+
+    return ind_onoff, chisq_1, chisq_2
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
