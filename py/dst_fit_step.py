@@ -138,7 +138,15 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
             (dif[2] > thresh[2])
             )[0]
 
-        ind_on.append(w+npix/2)
+        # -- find the peaks
+        bound = [0] + list(np.where((w- np.roll(w,1))>10)[0]) + [w.size]
+        peaks = np.array([w[bound[i]] + \
+                              np.argmax(dif[0,w[bound[i]:bound[i+1]]]) \
+                              for i in range(len(bound)-1)]) + npix/2
+
+
+        # -- add to list
+        ind_on.append(peaks)
 
     return ind_on, chisq_1, chisq_2
 
