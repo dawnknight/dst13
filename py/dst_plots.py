@@ -138,9 +138,9 @@ def kmeans_plot(night, band):
     kmfile = 'kmeans_night_' + str(night).zfill(2) + '_' + str(band) + '.pkl'
     wpath  = os.environ['DST_WRITE']
 
-    print("DST_KMEANS: reading in K-Means file")
-    print("DST_KMEANS:   path = {0}".format(wpath))
-    print("DST_KMEANS:   file = {0}".format(kmfile))
+    print("DST_PLOTS: reading in K-Means file")
+    print("DST_PLOTS:   path = {0}".format(wpath))
+    print("DST_PLOTS:   file = {0}".format(kmfile))
 
     fopen = open(os.path.join(wpath,kmfile),'rb')
     km    = pkl.load(fopen)
@@ -240,3 +240,11 @@ def make_plots():
     lc_matrix_plot(lcs01,'lc_matrix_01_srt.png', km=km01,
                    title='19:00 10/27 to 05:00 10/28')
 
+
+    # -- K-means clusters
+    for night in range(22):
+        for band in range(4):
+            dst13.kmeans_plot(night,band)
+
+
+    return
