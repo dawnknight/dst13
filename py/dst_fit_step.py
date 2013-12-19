@@ -15,24 +15,30 @@ from matplotlib.pyplot import *
 def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
 
     # -- utilities
-    npix    = width
-    nband   = 3
-    step_l  = np.zeros(npix)
-    step_r  = np.zeros(npix)
-    offset  = np.ones(npix)
-    tvals   = np.arange(float(npix))
-    dvals   = np.ma.zeros(npix)
-    ilc_mn  = wnum if wnum!=None else 0
-    ilc_mx  = wnum+1 if wnum!=None else lcs.lcs.shape[0]
-    lc      = np.ma.zeros(lcs.lcs[0].shape)
-    mask    = np.zeros(lcs.lcs[0].shape)
-    ind_on  = []
-    ind_off = []
+    npix      = width
+    nband     = 3
+    step_l    = np.zeros(npix)
+    step_r    = np.zeros(npix)
+    offset    = np.ones(npix)
+    tvals     = np.arange(float(npix))
+    dvals     = np.ma.zeros(npix)
+    ilc_mn    = wnum if wnum!=None else 0
+    ilc_mx    = wnum+1 if wnum!=None else lcs.lcs.shape[0]
+    lc        = np.ma.zeros(lcs.lcs[0].shape)
+    mask      = np.zeros(lcs.lcs[0].shape)
+    ind_onoff = []
 
 
     # -- set the step function
     step_l[:npix/2] = 1.0
     step_r[npix/2:] = 1.0
+
+
+    # -- smooth if desired
+    if smooth:
+        tvals  = gaussian_filter(tvals,smooth)
+        step_l = gaussian_filter(step_l,smooth)
+        step_r = gaussian_filter(step_r,smooth)
 
 
     # -- generate the two models and initialize some utilities
@@ -54,13 +60,7 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
     imax    = lc.shape[0]-ioff-npix
     chisq_1 = np.zeros([nband,imax])
     chisq_2 = np.zeros([nband,imax])
-
-
-    # -- smooth if desired
-    if smooth:
-        tvals  = gaussian_filter(tvals,smooth)
-        step_l = gaussian_filter(step_l,smooth)
-        step_r = gaussian_filter(step_r,smooth)
+    onoff   = np.zeros([nband,imax],dtype=np.int8)
 
 
     # -- loop through light curves
@@ -104,11 +104,10 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
                 if True in dvals.mask:
                     continue
 
-                mod1 = np.dot(np.dot(np.dot(tmpl_1,dvals),ptpinv_1),tmpl_1)
-                mod2 = np.dot(np.dot(np.dot(tmpl_2,dvals),ptpinv_2),tmpl_2)
+                avec            = np.dot(np.dot(tmpl_1,dvals),ptpinv_1)
+                onoff[iband,ii] = 1 if avec[2]>avec[1] else -1
 
-                chisq_1[iband,ii] = ((dvals - np.dot(np.dot(
-                                np.dot(tmpl_1,dvals),ptpinv_1),tmpl_1))**2
+                chisq_1[iband,ii] = ((dvals - np.dot(avec,tmpl_1))**2
                                      ).sum()/(noise[iband]**2)/(float(npix)-3)
 
                 chisq_2[iband,ii] = ((dvals - np.dot(np.dot(
@@ -146,9 +145,9 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None):
 
 
         # -- add to list
-        ind_on.append(peaks)
+        ind_onoff.append(peaks*onoff[0,peaks-npix/2])
 
-    return ind_on, chisq_1, chisq_2
+    return ind_onoff, chisq_1, chisq_2, onoff
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
