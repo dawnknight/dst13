@@ -183,8 +183,11 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None,
                         peaks.remove(ip)
 
             # -- add to list
-            peaks = np.array(peaks)
-            ind_onoff.append(peaks*onoff[0,peaks-npix/2])
+            if len(peaks)>0:
+                peaks = np.array(peaks)
+                ind_onoff.append(peaks*onoff[0,peaks-npix/2])
+            else:
+                ind_onoff.append(np.array([],dtype=np.int))
         else:
             ind_onoff.append(np.array([],dtype=np.int))
 
