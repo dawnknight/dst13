@@ -7,6 +7,7 @@ from .dst_io import *
 from .dst_light_curves import *
 from .dst_time_ticks import *
 from .dst_kmeans import *
+from .dst_night_times import *
 
 # -------- 
 #  Generate plots for the DST13 lightscape project
@@ -222,9 +223,76 @@ def kmeans_plot(night, band):
         plt.savefig(outfile, clobber=True)
         plt.close()
 
+        return
+
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
+
+def drift_plot():
+
+    # -- utilities
+    wpath      = os.environ['DST_WRITE']
+    regfile    = 'registration_dictionary.pkl'
+    start, end = night_times()
+    nnight     = len(start)
+    dr, dc, tr = [], [], []
+
+
+    # -- get file list
+    print("DST_DRIFT: reading file list...")
+    fopen = open(os.path.join(wpath,'filelist.pkl'),'rb')
+    fl    = pkl.load(fopen)
+    fopen.close()
+
+
+    # -- read in the registration dictionary
+    print("DST_DRIFT: reading registration dictionary...")
+    fopen  = open(os.path.join(wpath,regfile),'rb')
+    cc_dic = pkl.load(fopen)
+    fopen.close()
+
+
+    # -- loop through nights
+    for inight in range(nnight):
+
+        print("DST_DRIFT: night number {0}...".format(inight))
+
+        paths, files, times = fl.time_slice(start[inight],end[inight])
+
+        tr.append(len(times))
+        dr.append([])
+        dc.append([])
+
+        for itime, (p,f,t) in enumerate(zip(paths,files,times)):
+            dri, dci = cc_dic[f]
+
+            dr[inight].append(dri)
+            dc[inight].append(dci)
+
+
+    # -- plot
+    plt.figure(figsize=[10,6])
+    plt.ylim([-40,40])
+    plt.plot([item for sublist in dr for item in sublist])
+    plt.plot([item for sublist in dc for item in sublist])
+    for itr in np.cumsum(tr):
+        plt.plot([itr,itr],[-40,40],'--',color='#0099FF')
+    plt.xlim([0,itr])
+    plt.grid(b=1)
+    plt.xlabel('time step [10s]', size=15)
+    plt.ylabel(r'$\Delta$ pixel', size=15)
+    plt.text(100, 41.5, 'Required registration shift: ' +
+             'red=vertical, yellow=horizontal', ha='left', size=17)
+    plt.show()
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],
+                             'registration_v_time.jpg'), clobber=True)
+    plt.close()
+
+    return
+
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
 def make_plots():
 
@@ -244,7 +312,7 @@ def make_plots():
     # -- K-means clusters
     for night in range(22):
         for band in range(4):
-            dst13.kmeans_plot(night,band)
+            kmeans_plot(night,band)
 
 
     return
