@@ -1,8 +1,8 @@
+import time
 import pickle as pkl
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
-from scipy.signal import find_peaks_cwt
-from matplotlib.pyplot import *
 
 
 # -------- 
@@ -61,8 +61,7 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None,
 
 
     # -- find the range of analysis and initialize chisq arrays
-    ioff    = lc.shape[0] % npix
-    imax    = lc.shape[0]-ioff-npix
+    imax    = lc.shape[0]-npix
     chisq_1 = np.zeros([nband,imax])
     chisq_2 = np.zeros([nband,imax])
     onoff   = np.zeros([nband,imax],dtype=np.int8)
@@ -191,89 +190,71 @@ def fit_step(lcs, width=180, smooth=False, see=False, wnum=None,
         else:
             ind_onoff.append(np.array([],dtype=np.int))
 
+
+        # -- plot if desired
+        if see:
+            fit_step_plot(lc, ilc, dif, npix, thresh)
+
+
     return ind_onoff
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
 
-def fit_step_plot():
+def fit_step_plot(lc, ilc, dif, npix, thresh):
 
     # -- utilities
     linec  = ['#990000','#006600', '#0000FF']
     fillc  = ['#FF6600','#99C299', '#0099FF']
-
-
-
-    mx = lc.max()
-    mn = lc.min()
-
+    mx     = lc.max()
+    mn     = lc.min()
     htimes = [str(i%24).zfill(2) + ":00" for i in range(19,30)]
-
-    figure(1, figsize=[10.0,10.])
-    clf()
-
-    off = np.array([30,70,110]) - lc.mean(0)
-
-    subplot(221)
-    plot(lc[:,0]+off[0],linec[0])
-    plot(lc[:,1]+off[1],fillc[1])
-    plot(lc[:,2]+off[2],fillc[2])
-    xlim([0,3600])
-
-    xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
-    ylabel('intensity [arb. units]')
-    figtext(0.3,0.86,'window #'+str(ilc),fontsize=15,backgroundcolor='w')
-    figtext(0.3,0.86,'window #'+str(ilc),fontsize=15)
-
-    subplot(222)
-    fill_between(np.arange(dif.shape[1])+npix/2,dif[0],facecolor=linec[0],
-                 edgecolor=linec[0])
-    xlim([0,3600])
-
-    ymax = np.max([2*thresh[0],1.2*dif[0].max()])
-    ylim([0.0,ymax])
-    plot([0,3600],[thresh[0],thresh[0]],color='#EE4400')
-    plot([0,3600],[avg[0]+5*sig[0],avg[0]+5*sig[0]],color='#EE4400')
-    plot(w+npix/2,(dif[0])[w],'k+',ms=20)
-    xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
-    text(2750,0.87*ymax,r'$\Delta \chi^2_{R}$',fontsize=20)
-    text(3250,1.05*(avg[0]+5*sig[0]),r'$5\sigma$',fontsize=15)
-    text(3250,1.05*(avg[0]+10*sig[0]),r'$10\sigma$',fontsize=15)
-
-    subplot(223)
-    fill_between(np.arange(dif.shape[1])+npix/2,dif[1],facecolor=fillc[1],
-                 edgecolor=fillc[1])
-    xlim([0,3600])
-
-    ymax = np.max([2*thresh[1],1.2*dif[1].max()])
-    ylim([0.0,ymax])
-    plot([0,3600],[thresh[1],thresh[1]],color='#EE4400')
-    plot([0,3600],[avg[1]+5*sig[1],avg[1]+5*sig[1]],color='#EE4400')
-    plot(w+npix/2,(dif[1])[w],'k+',ms=20)
-    xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
-    text(2750,0.87*ymax,r'$\Delta \chi^2_{G}$',fontsize=20)
-    text(3250,1.05*(avg[1]+5*sig[1]),r'$5\sigma$',fontsize=15)
-    text(3250,1.05*(avg[1]+10*sig[1]),r'$10\sigma$',fontsize=15)
+    off    = np.array([30,70,110]) - lc.mean(0)
+    bname  = ['R','G','B']
 
 
-    subplot(224)
-    fill_between(np.arange(dif.shape[1])+npix/2,dif[2],facecolor=fillc[2],
-                 edgecolor=fillc[2])
-    xlim([0,3600])
-
-    ymax = np.max([2*thresh[2],1.2*dif[2].max()])
-    ylim([0.0,ymax])
-    plot([0,3600],[thresh[2],thresh[2]],color='#EE4400')
-    plot([0,3600],[avg[2]+5*sig[2],avg[2]+5*sig[2]],color='#EE4400')
-    plot(w+npix/2,(dif[2])[w],'k+',ms=20)
-    xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
-    text(2750,0.87*ymax,r'$\Delta \chi^2_{B}$',fontsize=20)
-    text(3250,1.05*(avg[2]+5*sig[2]),r'$5\sigma$',fontsize=15)
-    text(3250,1.05*(avg[2]+10*sig[2]),r'$10\sigma$',fontsize=15)
+    # -- open the figure
+    plt.figure(1, figsize=[10.0,10.])
+    plt.clf()
 
 
-    draw()
+    # -- plot the light curves
+    plt.subplot(221)
+    plt.plot(lc[:,0]+off[0],linec[0])
+    plt.plot(lc[:,1]+off[1],fillc[1])
+    plt.plot(lc[:,2]+off[2],fillc[2])
+    plt.xlim([0,3600])
+    plt.grid(b=1)
+
+    plt.xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
+    plt.ylabel('intensity [arb. units]')
+    plt.figtext(0.3,0.86,'window #'+str(ilc),fontsize=15,backgroundcolor='w')
+    plt.figtext(0.3,0.86,'window #'+str(ilc),fontsize=15)
+
+
+    # -- plot the delta chi^2
+    for i, clr in enumerate([linec[0],fillc[1],fillc[2]]):
+
+        plt.subplot(2,2,i+2)
+        plt.grid(b=1)
+        plt.fill_between(np.arange(dif.shape[1])+npix/2,dif[i],facecolor=clr,
+                         edgecolor=clr)
+        plt.xlim([0,3600])
+
+        ymax = np.max([2*thresh[i],1.2*dif[i].max()])
+        plt.ylim([0.0,ymax])
+        plt.plot([0,3600],[thresh[i],thresh[i]],color='#EE4400')
+#    plot([0,3600],[avg[0]+5*sig[0],avg[0]+5*sig[0]],color='#EE4400')
+#    plot(w+npix/2,(dif[0])[w],'k+',ms=20)
+        plt.xticks([360.*j for j in range(10+1)], htimes, rotation=30.)
+        plt.text(2750,0.87*ymax,r'$\Delta \chi^2_{'+bname[i]+'}$',fontsize=20)
+#    text(3250,1.05*(avg[0]+5*sig[0]),r'$5\sigma$',fontsize=15)
+#    text(3250,1.05*(avg[0]+10*sig[0]),r'$10\sigma$',fontsize=15)
+
+    plt.show()
+    plt.draw()
+    time.sleep(2)
 
 #print("DST_FIT_STEP: writing window # {0} to png".format(ilc))
 #savefig('../output/fitstep/fitstep_night_'+str(night).zfill(2)+'_'+
