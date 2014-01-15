@@ -80,7 +80,8 @@ def lc_matrix_plot(lcs, outfile, km=None, band=0, title=None):
 
 
     # -- open the figure
-    plt.figure(figsize=[10.*float(ntime)/float(nwin),10.])
+    plt.figure(figsize=[7.5,7.5])
+    plt.subplots_adjust(0.07,0.07,0.93,0.93)
 
 
     # -- if K-Means solution has been passed, get the index sorting
@@ -111,6 +112,8 @@ def lc_matrix_plot(lcs, outfile, km=None, band=0, title=None):
 
     plt.yticks([0,lcs.lcs.shape[0]-1],'')
     plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.clim([16,255])
 
     if title:
         plt.title(title+' ('+bstr+'-band)')
@@ -290,6 +293,62 @@ def drift_plot():
     plt.close()
 
     return
+
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+def aps_backpage():
+
+    # -- utilities
+    pix0 = 235
+    ratn = 0.8
+
+    # -- define the paths and file names
+    day_path = '11/28/14.28.45'
+    day_file = 'oct08_2013-10-25-175504-292724.raw'
+    ngt_path = '11/28/19.23.54'
+    ngt_file = 'oct08_2013-10-25-175504-294492.raw'
+
+
+    # -- read in the images
+    img_day = read_raw(day_file,os.path.join(os.environ['DST_DATA'],
+                                             day_path))[:,pix0:,:]
+    img_ngt = read_raw(ngt_file,os.path.join(os.environ['DST_DATA'],
+                                             ngt_path))[:,pix0:,:]
+
+    img_bnd = (ratn*img_ngt.astype(np.float) + 
+               (1.0-ratn)*img_day.astype(np.float)).astype(np.uint8)
+
+
+    # -- make plots
+    nrow, ncol = img_ngt.shape[0:2]
+
+    plt.figure(figsize=[26.25,26.25*float(nrow)/float(ncol)])
+    plt.imshow(img_day)
+    plt.axis('off')
+    plt.subplots_adjust(0,0,1,1)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'aps_backpage_day.png'), 
+                clobber=True)
+    plt.close()
+
+    plt.figure(figsize=[26.25,26.25*float(nrow)/float(ncol)])
+    plt.imshow(img_ngt)
+    plt.axis('off')
+    plt.subplots_adjust(0,0,1,1)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'aps_backpage_ngt.png'), 
+                clobber=True)
+    plt.close()
+
+    plt.figure(figsize=[26.25,26.25*float(nrow)/float(ncol)])
+    plt.imshow(img_bnd)
+    plt.axis('off')
+    plt.subplots_adjust(0,0,1,1)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'aps_backpage_bnd.png'), 
+                clobber=True)
+    plt.close()
+
+    return
+
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
