@@ -3,6 +3,8 @@ import pickle as pkl
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from scipy.ndimage.filters import median_filter as mf
+from scipy.ndimage.filters import gaussian_filter as gf
 from .dst_io import *
 from .dst_light_curves import *
 from .dst_time_ticks import *
@@ -80,7 +82,8 @@ def lc_matrix_plot(lcs, outfile, km=None, band=0, title=None):
 
 
     # -- open the figure
-    plt.figure(figsize=[10.*float(ntime)/float(nwin),10.])
+    plt.figure(figsize=[7.5,7.5])
+    plt.subplots_adjust(0.07,0.07,0.93,0.93)
 
 
     # -- if K-Means solution has been passed, get the index sorting
@@ -111,6 +114,8 @@ def lc_matrix_plot(lcs, outfile, km=None, band=0, title=None):
 
     plt.yticks([0,lcs.lcs.shape[0]-1],'')
     plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.clim([16,255])
 
     if title:
         plt.title(title+' ('+bstr+'-band)')
@@ -287,6 +292,180 @@ def drift_plot():
     plt.show()
     plt.savefig(os.path.join(os.environ['DST_WRITE'],
                              'registration_v_time.jpg'), clobber=True)
+    plt.close()
+
+    return
+
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+
+def res_lc_plot():
+
+    # -- read in the residential data
+    lcs = []
+
+    for night in range(22):
+        fopen = open(os.path.join(os.environ['DST_WRITE'],'res_lc_night_' + 
+                                  str(night).zfill(2) + '_2.pkl'),'rb')
+        lcs.append(pkl.load(fopen))
+        fopen.close()
+
+
+    # -- utilities
+    tcks, htimes = time_ticks()
+
+
+    # -- define fri/sat and all other days
+#    we = [0,6,7,13,14,20,21]
+#    wd = [1,2,3,4,5,8,9,10,11,12,15,16,17,18,19]
+    we = [0,6,7,13,14,20,21]
+    wd = [1,2,3,4,5,8,9,10,11,12,15,16,17,18,19]
+
+
+    # -- get mean averaged lc
+    tmax = min([len(i.mean(0)) for i in lcs if len(i.mean(0))>3000])
+    mnwd = np.zeros(tmax)
+    mnwe = np.zeros(tmax)
+
+    cnt = 0.0
+    for idy in wd:
+        if idy==8: continue
+        if len(lcs[idy].mean(0))>3000:
+            mnwd += lcs[idy].mean(0)[:tmax]
+            cnt += 1.0
+    mnwd /= cnt
+
+    cnt = 0.0
+    for idy in we:
+        if idy==21: continue
+        if len(lcs[idy].mean(0))>3000:
+            mnwe += lcs[idy].mean(0)[:tmax]
+            cnt += 1.0
+    mnwe /= cnt
+
+    plt.figure(1,figsize=[5,5])
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.ylabel('intensity [arb units]',size=15)
+    plt.xlim([0,3600])
+    plt.grid(b=1)
+    plt.plot(mnwd,'k')
+    plt.plot(mnwe,'r')
+    plt.savefig('../output/res_lc_mean.png',clobber=True)
+    plt.close()
+
+
+    # -- open the figure
+    plt.figure(0,figsize=[15,5])
+    plt.subplots_adjust(0.05,0.1,0.95,0.95)
+
+    plt.subplot(131)
+    for idy in wd: 
+#        plt.plot(mf(lcs[idy][0]/lcs[idy][0,0],6))
+#        plt.plot(mf(lcs[idy].mean(0)/lcs[idy].mean(0)[0],6))
+#        cdf = np.cumsum(lcs[idy].mean(0))
+#        plt.plot(cdf/cdf[360]/(np.arange(cdf.size)/360.))
+        lc_sm = gf(lcs[idy].mean(0)/lcs[idy].mean(0)[0],6)
+        norm = (lc_sm-lc_sm[-1])
+#        plt.plot(lc_sm/lc_sm[0])
+        plt.plot(norm/norm[0])
+#        plt.plot(gf((lc_sm-np.roll(lc_sm,1))[1:-1],360))
+#    plt.ylim([0.8,1.2])
+#    plt.ylim([0.6,1.4])
+    plt.ylim([-0.1,1.4])
+    plt.grid(b=1)
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.ylabel('intensity [arb units]',size=15)
+
+    plt.subplot(132)
+    for idy in we: 
+#        plt.plot(mf(lcs[idy][0]/lcs[idy][0,0],6))
+#        plt.plot(mf(lcs[idy].mean(0)/lcs[idy].mean(0)[0],6))
+#        cdf = np.cumsum(lcs[idy].mean(0))
+#        plt.plot(cdf/cdf[360]/(np.arange(cdf.size)/360.))
+        lc_sm = gf(lcs[idy].mean(0)/lcs[idy].mean(0)[0],6)
+        norm = (lc_sm-lc_sm[-1])
+#        plt.plot(lc_sm/lc_sm[0])
+        plt.plot(norm/norm[0])
+#        plt.plot(gf((lc_sm-np.roll(lc_sm,1))[1:-1],360))
+#    plt.ylim([0.6,1.4])
+#    plt.ylim([0.8,1.2])
+    plt.ylim([-0.1,1.4])
+    plt.grid(b=1)
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.ylabel('intensity [arb units]',size=15)
+
+    plt.subplot(133)
+    for idy in wd: 
+#        plt.plot(mf(lcs[idy][0]/lcs[idy][0,0],6),'k')
+        plt.plot(mf(lcs[idy].mean(0)/lcs[idy].mean(0)[0],6),'k')
+    for idy in we: 
+#        plt.plot(mf(lcs[idy][0]/lcs[idy][0,0],6),'r')
+        plt.plot(mf(lcs[idy].mean(0)/lcs[idy].mean(0)[0],6),'r')
+    plt.ylim([0.6,1.4])
+    plt.grid(b=1)
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.ylabel('intensity [arb units]',size=15)
+
+    plt.savefig('../output/res_lc_all.png',clobber=True)
+    plt.close()
+
+    return
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+
+def aps_backpage():
+
+    # -- utilities
+    pix0 = 235
+    ratn = 0.8
+
+    # -- define the paths and file names
+    day_path = '11/28/14.28.45'
+    day_file = 'oct08_2013-10-25-175504-292724.raw'
+    ngt_path = '11/28/19.23.54'
+    ngt_file = 'oct08_2013-10-25-175504-294492.raw'
+
+
+    # -- read in the images
+    img_day = read_raw(day_file,os.path.join(os.environ['DST_DATA'],
+                                             day_path))[:,pix0:,:]
+    img_ngt = read_raw(ngt_file,os.path.join(os.environ['DST_DATA'],
+                                             ngt_path))[:,pix0:,:]
+
+    img_bnd = (ratn*img_ngt.astype(np.float) + 
+               (1.0-ratn)*img_day.astype(np.float)).astype(np.uint8)
+
+
+    # -- make plots
+    nrow, ncol = img_ngt.shape[0:2]
+
+    plt.figure(figsize=[26.25,26.25*float(nrow)/float(ncol)])
+    plt.imshow(img_day)
+    plt.axis('off')
+    plt.subplots_adjust(0,0,1,1)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'aps_backpage_day.png'), 
+                clobber=True)
+    plt.close()
+
+    plt.figure(figsize=[26.25,26.25*float(nrow)/float(ncol)])
+    plt.imshow(img_ngt)
+    plt.axis('off')
+    plt.subplots_adjust(0,0,1,1)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'aps_backpage_ngt.png'), 
+                clobber=True)
+    plt.close()
+
+    plt.figure(figsize=[26.25,26.25*float(nrow)/float(ncol)])
+    plt.imshow(img_bnd)
+    plt.axis('off')
+    plt.subplots_adjust(0,0,1,1)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'aps_backpage_bnd.png'), 
+                clobber=True)
     plt.close()
 
     return
