@@ -586,6 +586,116 @@ def aps_backpage():
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
+
+def plateau_plot(night):
+
+    # -- utilities
+    if night==1:
+        plind = [1,4,6,7,10]
+    elif night==9:
+        plind = [0,2,6,7,10]
+    else:
+        print("DST_PLOTS: plateaus only chosen for nights 1 and 9!!!")
+        return
+
+    dayst = [i for _ in [0,1,2,3] for i in ['Saturday', 'Sunday', 'Monday', 
+                                            'Tuesday', 'Wednesday', 
+                                            'Thursday', 'Friday']]
+    ngtst = str(night).zfill(2)
+
+
+    # -- read in the light curves
+    lcs = LightCurves('','',infile='lcs_night_'+ngtst,noerr=True)
+    km  = pkl.load(open('../output/kmeans_night_'+ngtst+'_0.pkl'))
+
+
+    # -- sort according to cluster labels
+    sindex = np.argsort(km.labels_)
+
+
+    # -- get lightcurves from select clusters
+    index = np.array([(i in plind) for i in km.labels_[sindex]])
+    sub   = (lcs.lcs[sindex,:,0])[index]
+
+
+    # -- get the on/off transitions and convert to array
+    ind_onoff = []
+    for i in range(1,10):
+        fopen = open('../output/ind_onoff_night_'+ngtst+'_'+str(i)+'.pkl','rb')
+        ind_onoff += pkl.load(fopen)
+        fopen.close()
+
+    ind_arr = np.array([i for i in ind_onoff])
+
+
+    # -- pull out the sublist of off transitions
+    ind_sub = (ind_arr[sindex])[index]
+    all_off = [item for sublist in ind_sub for item in sublist if item<0]
+    all_on  = [item for sublist in ind_sub for item in sublist if item>0]
+
+
+    # -- normalize according to maximum value of the lightcurve
+    snorm = ((sub.T/sub.max(1)).T)
+
+
+    # -- sort according to integral
+    aindex = np.argsort(snorm.sum(1))
+
+
+    # -- get the row/col positions of the off transisitions
+    xx_off, yy_off = [], []
+    xx_on, yy_on   = [], []
+    for i,sublist in enumerate(ind_arr[sindex][index][aindex[::-1]]):
+        for j in sublist:
+            if j<0:
+                xx_off.append(i)
+                yy_off.append(j)
+            elif j>0:
+                xx_on.append(i)
+                yy_on.append(j)
+
+
+    # -- make the figure
+    plt.figure(0, figsize=[15,15])
+    plt.subplot(2,2,3)
+    plt.hist(np.abs(all_on),bins=40,facecolor=fillc[1],edgecolor=linec[1])
+    tcks,htimes = time_ticks()
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.ylim([0,150])
+    plt.grid(b=1)
+    plt.ylabel('# of ON transitions', size=15)
+
+    plt.subplot(2,2,4)
+    plt.hist(np.abs(all_off),bins=40,facecolor=fillc[0],edgecolor=linec[0])
+    tcks,htimes = time_ticks()
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.ylim([0,150])
+    plt.grid(b=1)
+    plt.ylabel('# of OFF transitions', size=15)
+
+    plt.subplot(2,1,1)
+    plt.scatter(np.abs(yy_off),xx_off,c=fillc[0])
+    plt.scatter(np.abs(yy_on),xx_on,c=fillc[1])
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.yticks([0],'')
+    plt.xlim([0,3600])
+    plt.imshow(snorm[aindex[::-1]], aspect=0.5*float(snorm.shape[1])/
+                     float(snorm.shape[0]))
+    plt.text(0,-20,dayst[night], size=20)
+
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],
+                             'plateau_onoff_'+ngtst+'.png'), 
+                clobber=True)
+    plt.close()
+
+    return
+
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+
 def make_plots():
 
     """ Run all plots """
