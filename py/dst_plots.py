@@ -299,7 +299,7 @@ def drift_plot():
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
-<<<<<<< HEAD
+
 def res_lc_plot():
 
     # -- read in the residential data
@@ -412,10 +412,12 @@ def res_lc_plot():
 
     plt.savefig('../output/res_lc_all.png',clobber=True)
     plt.close()
-    
-#    import pdb
-#    pdb.set_trace()
-=======
+
+    return
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+
 def aps_backpage():
 
     # -- utilities
@@ -467,8 +469,6 @@ def aps_backpage():
     plt.close()
 
     return
-
->>>>>>> e2d962d2c0725a6bda4daee23bb991d00d8e8e79
 
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
