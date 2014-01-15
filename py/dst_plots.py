@@ -297,6 +297,119 @@ def drift_plot():
     return
 
 
+# -------- # -------- # -------- # -------- # -------- # -------- # --------
+
+
+def one_off_dist(night):
+
+    """ Plot of time of off transitions in which off is the first
+    transition"""
+
+    # -- utilities
+    aoff  = []
+    ooff  = []
+    ooffp = []
+    sind  = []
+    tcks, htimes = time_ticks()
+
+
+    # -- get the on/off times
+    ind_onoff = []
+
+    for ii in range(1,10):
+        fopen = open(os.path.join(os.environ['DST_WRITE'],
+                                  'ind_onoff_night_'+str(night).zfill(2)+
+                                  '_'+str(ii)+'.pkl'),'rb')
+        ind_onoff += pkl.load(fopen)
+        fopen.close()
+
+
+    # -- pull out useful subsets
+    for index,ind in enumerate(ind_onoff):
+        if len(ind)==1:
+            if ind[0]<0:
+                ooff.append(ind)
+                sind.append(index)
+        elif len(ind)>0:
+            if ind[0]<0:
+                ooffp.append([ind[0]])
+            elif min(ind)<0:
+                aoff.append([j for j in ind if j<0])
+
+
+    # -- make the plot
+    plt.figure(0,figsize=[7.5,7.5])
+    plt.hist([abs(item) for sublist in aoff for item in sublist], 
+             40,range=[0,3600],facecolor=fillc[2])
+    plt.hist([abs(item) for sublist in ooffp for item in sublist], 
+             40,range=[0,3600],facecolor=fillc[1])
+    plt.hist([abs(item) for sublist in ooff for item in sublist], 
+             40,range=[0,3600],facecolor=fillc[0])
+    plt.xticks(tcks,htimes,rotation=30)
+    plt.xlim([0,3600])
+    plt.ylim([0,200])
+    plt.grid(b=1)
+    plt.ylabel('# of OFF transitions', size=15)
+    plt.figtext(0.13,0.91,'night '+str(night),size=17)
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],'one_off_night_'+
+                             str(night).zfill(2)+'.png'),clobber=True)
+    plt.close()
+
+    return
+
+
+# -------- # -------- # -------- # -------- # -------- # -------- # -------- 
+
+def on_vs_time(lcs_dis, color=None, outfile='on_vs_time.png'):
+
+    # -- check for list
+    if not isinstance(lcs_dis,list):
+        lcs_dis = [lcs_dis]
+        color   = [color]
+
+
+    # -- utilities
+    tcks, htimes = time_ticks()
+    nlcs = len(lcs_dis)
+
+
+    # -- make a plot of number of windows "on" vs time
+#    plt.figure(0, figsize=[7.5,7.5])
+#    plt.xlim([0,3600])
+#    plt.ylabel('# of windows on',fontsize=15)
+#    plt.grid(b=1)
+#    plt.xticks(tcks,htimes,rotation=30)
+#
+#    for ii in range(len(lcs_dis)):
+#        plt.plot((lcs_dis[ii]>0).sum(0),color=color[ii])
+#
+#    plt.savefig(os.path.join(os.environ['DST_WRITE'],outfile),clobber=True)
+
+    plt.figure(0, figsize=[15.0,7.5])
+    plt.subplot(1,2,1)
+    plt.xlim([0,3600])
+    plt.ylabel('# of windows on',fontsize=15)
+    plt.grid(b=1)
+    plt.xticks(tcks,htimes,rotation=30)
+
+    for ii in range(len(lcs_dis)):
+        plt.plot((lcs_dis[ii]>0).sum(0),color=color[ii])
+
+    plt.subplot(1,2,2)
+    plt.xlim([0,3600])
+    plt.ylabel('normalized # of windows on',fontsize=15)
+    plt.grid(b=1)
+    plt.xticks(tcks,htimes,rotation=30)
+
+    for ii in range(len(lcs_dis)):
+        lc = (lcs_dis[ii]>0).sum(0)
+        plt.plot(lc/float(lc[0]),color=color[ii])
+
+    plt.savefig(os.path.join(os.environ['DST_WRITE'],outfile),clobber=True)
+
+    return
+
+
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
 
