@@ -63,15 +63,4 @@ def discrete_lc(night):
         lcs_dis[ilc] -= lcs_dis[ilc].min() # define "min" as off
 
 
-    # -- make a plot of number of windows "on" vs time
-    tcks,htimes = dst13.time_ticks()
-    plt.figure(0)
-    plt.plot((lcs_dis>0).sum(0),color='#990000',lw=2)
-    plt.xlim([0,3600])
-    plt.ylabel('# of windows on',fontsize=15)
-    plt.grid(b=1)
-    plt.xticks(tcks,htimes,rotation=30)
-    plt.show()
-
-
     return lcs_dis
