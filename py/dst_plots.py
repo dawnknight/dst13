@@ -759,20 +759,20 @@ def plateau_plot(night, maxstep=True, norm=1, plot_on=True, lw=0.0,
 
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
-'''
-def ordered_unclustered_plot(night, index=None, maxstep=True, norm=1, plot_on=True, 
-                             lw=0.0, residential=False, band=0, diffsort=False):
+
+def ordered_unclustered_plot(night, index=[], lc_ind=[], maxstep=True, norm=1, 
+                             plot_on=True, lw=0.0, residential=False, band=0, 
+                             write=False):
 
     # -- utilities
+    ngtst = str(night).zfill(2)
+
     dayst = [i for _ in [0,1,2,3] for i in ['Saturday', 'Sunday', 'Monday', 
                                             'Tuesday', 'Wednesday', 
                                             'Thursday', 'Friday']]
-    ngtst = str(night).zfill(2)
-
 
     # -- read in the light curves
     lcs = LightCurves('','',infile='lcs_night_'+ngtst,noerr=True)
-
 
 
     # -- get window labels
@@ -795,85 +795,76 @@ def ordered_unclustered_plot(night, index=None, maxstep=True, norm=1, plot_on=Tr
 
 
     # -- get lightcurves from select clusters
-    if residential:
-        index = np.array([((i in plind) and (j>1000) and (len(k[k<0])>0)) 
-                          for (k,j,i) in 
-                          zip(ind_arr[sindex],labs.rvec[sindex],km.labels_[sindex])])
-    else:
-        index = np.array([(i in plind) for i in km.labels_[sindex]])    
+    if len(lc_ind)==0:
+        if residential:
+            for il in np.array([((j>1000) and (len(k[k<0])>0)) for (k,j) in 
+                                zip(ind_arr,labs.rvec)]):
+                lc_ind.append(il)
 
-    sub   = (lcs.lcs[sindex,:,band])[index]
+        else:
+            for il in np.array([len(k[k<0])>0 for k in ind_arr]):
+                lc_ind.append(il)
+    else:
+        print("DST_PLOTS: using input light curve indices...")
+
+    lc_vind = np.array([i for i in lc_ind])
+    sub     = lcs.lcs[lc_vind,:,band]
 
 
     # -- pull out the sublist of off transitions
-    ind_sub = (ind_arr[sindex])[index]
+    ind_sub = ind_arr[lc_vind]
     all_off = [item for sublist in ind_sub for item in sublist if item<0]
     all_on  = [item for sublist in ind_sub for item in sublist if item>0]
 
 
     # -- normalize according to maximum value of the lightcurve
     if norm==1:
-        snorm = ((sub.T/sub.max(1)).T)
-    elif norm==2:
         snorm = ((sub.T-sub.min(1)).T)
         snorm = ((snorm.T/snorm.max(1)).T)
+    elif norm==2:
+        snorm = ((sub.T/sub.max(1)).T)
     else:
         snorm = sub
 
 
     # -- identify largest transition and sort
-    if maxstep:
-        xx_off, yy_off = [], []
-        xx_on, yy_on   = [], []
+    xx_off, yy_off = [], []
+    xx_on, yy_on   = [], []
 
-        for i, sublist in enumerate(ind_sub):
-            bigoff, left = 0, 0.0
-            bigon, right = 0, sub[i].mean()
-            for j in sublist:
-                if j<0:
-                    tleft = sub[i,:-j].mean()
-                    if tleft>left:
-                        bigoff = j
-                        left   = tleft
-                elif j>0:
-                    tright = sub[i,j:].mean()
-                    if tright>right:
-                        bigon = j
-                        right = tright
+    for i, sublist in enumerate(ind_sub):
+        bigoff, left = 0, 0.0
+        bigon, right = 0, sub[i].mean()
+        for j in sublist:
+            if j<0:
+                tleft = sub[i,:-j].mean()
+                if tleft>left:
+                    bigoff = j
+                    left   = tleft
+            elif j>0:
+                tright = sub[i,j:].mean()
+                if tright>right:
+                    bigon = j
+                    right = tright
 
-            xx_off.append(i)
-            yy_off.append(bigoff)
-            xx_on.append(i)
-            yy_on.append(bigon)
+        xx_off.append(i)
+        yy_off.append(bigoff)
+        xx_on.append(i)
+        yy_on.append(bigon)
 
-        # sort according to big off
-        if diffsort:
-            aindex = np.argsort(np.abs(yy_off)-np.abs(yy_on))
-        else:
-            aindex = np.argsort(np.abs(yy_off))
 
-        yy_off = np.array([i for i in yy_off])[aindex[::-1]]
-        yy_on = np.array([i for i in yy_on])[aindex[::-1]]
-
+    # -- sort according to big off
+    if len(index)==0:
+        for iy in np.argsort(np.abs(yy_off)):
+            index.append(iy)
     else:
-        # -- sort according to integral
-        aindex = np.argsort(snorm.sum(1))
-
-        # -- get the row/col positions of the off transisitions
-        xx_off, yy_off = [], []
-        xx_on, yy_on   = [], []
-        for i,sublist in enumerate(ind_arr[sindex][index][aindex[::-1]]):
-            for j in sublist:
-                if j<0:
-                    xx_off.append(i)
-                    yy_off.append(j)
-                elif j>0:
-                    xx_on.append(i)
-                    yy_on.append(j)
+        print("DST_PLOTS: using input sorting indices...")
+    vindex = np.array([i for i in index])
+    yy_off = np.array([i for i in yy_off])[vindex[::-1]]
+    yy_on  = np.array([i for i in yy_on])[vindex[::-1]]
 
 
     # -- make the figure
-    plt.figure(0, figsize=[15,15])
+    plt.figure(figsize=[15,15])
     plt.subplot(2,2,3)
     n_on, bins, patches = plt.hist(np.abs(all_on),bins=40,facecolor=fillc[1],
                                    edgecolor=linec[1])
@@ -903,18 +894,18 @@ def ordered_unclustered_plot(night, index=None, maxstep=True, norm=1, plot_on=Tr
     plt.xticks(tcks,htimes,rotation=30)
     plt.yticks([0],'')
     plt.xlim([0,3600])
-    plt.imshow(snorm[aindex[::-1]], aspect=0.5*float(snorm.shape[1])/
+    plt.imshow(snorm[vindex[::-1]], aspect=0.5*float(snorm.shape[1])/
                      float(snorm.shape[0]))
     plt.text(0,-20,dayst[night], size=20)
 
-#    plt.savefig(os.path.join(os.environ['DST_WRITE'],
-#                             'plateau_onoff_'+ngtst+'.png'), 
-#                clobber=True)
-#    plt.close()
+    if write:
+        plt.savefig(os.path.join(os.environ['DST_WRITE'], 
+                                 'unclustered_sorted_'+write+'.png'), clobber=True)
+        plt.close()
 
     return
 
-'''
+
 # -------- # -------- # -------- # -------- # -------- # -------- # -------- 
 
 
