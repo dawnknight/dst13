@@ -763,7 +763,8 @@ def plateau_plot(night, maxstep=True, norm=1, plot_on=True, lw=0.0,
 def ordered_unclustered_plot(night, index=[], lc_ind=[], maxstep=True, norm=1, 
                              plot_on=True, lw=0.0, residential=False, band=0, 
                              write=False):
-
+    print "len(index) = ", len(index)
+    print "len(lc_ind) = ", len(lc_ind)
     # -- utilities
     ngtst = str(night).zfill(2)
 
