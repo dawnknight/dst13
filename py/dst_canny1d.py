@@ -1,67 +1,146 @@
 import dst13
 import numpy as np
 import matplotlib.pyplot as plt
-
-from scipy.ndimage.filters import median_filter as mf
 from scipy.ndimage.filters import gaussian_filter as gf
 
-#lcs = dst13.LightCurves('','',infile='lcs_night_09',noerr=True).lcs
+def canny1d(lcs, indices=None, width=30, delta=2, see=False, sig_clip_iter=10, 
+            sig_clip_amp=2.0, sig_peaks=10.0):
 
-#index = 2463
-
-sm = 30
-drng = 2
-lc = mf(lcs[index].mean(1),sm)
-diff = roll(lc,-drng)-roll(lc,drng)
-
-
-# canny
-#lcg = gf(lcs[index].mean(1),sm)
-lcg = gf(lcs[index,:,band],sm)
-plt.figure(3,figsize=[5,10])
-clf()
-subplot(2,1,1)
-plot(lcs[index,:,0])
-plot(lcs[index,:,1])
-plot(lcs[index,:,2])
-subplot(2,1,2)
-plot(roll(lcg,-drng)-roll(lcg,drng))
-ylim([-1,1])
-
-# pull out potential peaks
-difgm = np.ma.array([i for i in roll(lcg,-drng)-roll(lcg,drng)])
-difgm.mask = np.abs(difgm)>10
-difgm.mask[:sm] = True
-difgm.mask[-sm:] = True
-figure(5)
-clf()
-plot(difgm,lw=2)
-ylim([1.2*difgm.min(),1.2*difgm.max()])
-for _ in range(10):
-    sig = difgm.std()
-    print "iter,sig, min, max = ",_,sig,difgm.min(),difgm.max()
-    difgm.mask[np.abs(difgm) > 2*sig] = True
-    plot(difgm,lw=2)
-
-#on = np.where((np.abs(difgm) > 10*sig) & 
-#              (difgm>roll(difgm,-1)) & 
-#              (difgm>roll(difgm,1)))
-#off = np.where((np.abs(difgm) > 10*sig) & 
-#              (difgm<roll(difgm,-1)) & 
-#              (difgm<roll(difgm,1)))
-on = np.where((difgm > difgm.mean()+10*sig) & 
-              (difgm>roll(difgm,-1)) & 
-              (difgm>roll(difgm,1)))
-off = np.where((difgm < difgm.mean()-10*sig) & 
-              (difgm<roll(difgm,-1)) & 
-              (difgm<roll(difgm,1)))
-difgm.mask[on] = False
-difgm.mask[off] = False
-plot(on[0],difgm[on],'go',markersize=5)
-plot(off[0],difgm[off],'ro',markersize=5)
-
-#w = np.where(np.abs(difgm) > 10*sig)
-#difgm.mask[w] = False
-#plot(w[0],difgm[w],'k+',markersize=10)
+    # -- defaults
+    if indices==None:
+        nwin    = lcs.lcs.shape[0]
+        indices = range(nwin)
+        print("DST_CANNY1D: running edge detector for all " + 
+              "{0} windows...".format(nwin))
+    else:
+        nwin = len(indices)
+        print("DST_CANNY1D: running edge detector for " + 
+              "{0} windows...".format(nwin))
 
 
+    # -- utilities
+    lcg       = np.zeros(lcs.lcs.shape[1:])
+    dlcg      = np.ma.zeros(lcg.shape)
+    dlcg.mask = dlcg>314
+    ind_onoff = []
+    ints      = np.arange(lcs.lcs.shape[0])
+
+
+    # -- loop through windows
+    for ii, index in enumerate(indices):
+        if ii%100==0:
+            print("DST_CANNY1D:   {0} of {1}".format(ii,nwin))
+
+        # -- smooth each band
+        for band in [0,1,2]:
+            lcg[:,band] = gf(lcs.lcs[index,:,band],width)
+
+
+        # -- compute Gaussian difference and set mask edges
+        dlcg[:,:]          = np.roll(lcg,-delta,0)-np.roll(lcg,delta,0)
+        dlcg.mask[:width]  = True
+        dlcg.mask[-width:] = True
+
+
+        # -- plot
+        if see:
+            plt.figure(6)
+            plt.clf()
+            plt.subplot(2,2,2)
+            plt.plot(dlcg[:,0], lw=2)
+            plt.ylim([1.2*dlcg.min(),1.2*dlcg.max()])
+            plt.subplot(2,2,3)
+            plt.plot(dlcg[:,1], lw=2)
+            plt.ylim([1.2*dlcg.min(),1.2*dlcg.max()])
+            plt.subplot(2,2,4)
+            plt.plot(dlcg[:,2], lw=2)
+            plt.ylim([1.2*dlcg.min(),1.2*dlcg.max()])
+
+        # -- sigma clip
+        for _ in range(10):
+            avg = dlcg.mean(0)
+            sig = dlcg.std(0)
+            dlcg.mask = np.abs(dlcg-avg) > sig_clip_amp*sig
+
+            if see:
+                plt.subplot(2,2,2)
+                plt.plot(dlcg[:,0], lw=2)
+                plt.subplot(2,2,3)
+                plt.plot(dlcg[:,1], lw=2)
+                plt.subplot(2,2,4)
+                plt.plot(dlcg[:,2], lw=2)
+
+
+        # -- set mean and std and reset the mask
+        avg                = dlcg.mean(0)
+        sig                = dlcg.std(0)
+        dlcg.mask[:,:]     = False
+        dlcg.mask[:width]  = True
+        dlcg.mask[-width:] = True
+
+
+        # -- find peaks in RGB
+        ind_on_rgb, ind_off_rgb = [], []
+
+        tags_on  = (dlcg-avg > sig_peaks*sig) & \
+            (dlcg>np.roll(dlcg,1,0)) & \
+            (dlcg>np.roll(dlcg,-1,0)) & \
+            ~dlcg.mask
+
+        tags_off = (dlcg-avg < -sig_peaks*sig) & \
+            (dlcg<np.roll(dlcg,1,0)) & \
+            (dlcg<np.roll(dlcg,-1,0)) & \
+            ~dlcg.mask
+
+        for band in [0,1,2]:
+            ind_on_rgb.append([i for i in ints[tags_on[:,band]]])
+            ind_off_rgb.append([ i for i in ints[tags_off[:,band]]])
+
+
+        # -- collapse RGB indices
+        for iind in ind_on_rgb[0]:
+            for jind in ind_on_rgb[1]:
+                if abs(iind-jind)<=2:
+                    ind_on_rgb[1].remove(jind)
+            for jind in ind_on_rgb[2]:
+                if abs(iind-jind)<=2:
+                    ind_on_rgb[2].remove(jind)
+
+        for iind in ind_on_rgb[1]:
+            for jind in ind_on_rgb[2]:
+                if abs(iind-jind)<=2:
+                    ind_on_rgb[2].remove(jind)
+
+        ind_on_list = ind_on_rgb[0] + ind_on_rgb[1] + ind_on_rgb[2]
+
+        for iind in ind_off_rgb[0]:
+            for jind in ind_off_rgb[1]:
+                if abs(iind-jind)<=2:
+                    ind_off_rgb[1].remove(jind)
+            for jind in ind_off_rgb[2]:
+                if abs(iind-jind)<=2:
+                    ind_off_rgb[2].remove(jind)
+
+        for iind in ind_off_rgb[1]:
+            for jind in ind_off_rgb[2]:
+                if abs(iind-jind)<=2:
+                    ind_off_rgb[2].remove(jind)
+
+        ind_off_list = ind_off_rgb[0] + ind_off_rgb[1] + ind_off_rgb[2]
+
+
+
+        # -- add to on/off list
+        tind_onoff = np.array([i for i in ind_on_list+[-j for j in 
+                                                        ind_off_list]])
+
+        ind_onoff.append(tind_onoff[np.argsort(np.abs(tind_onoff))])
+
+
+#        if see:
+#            plt.subplot(2,2,2)
+#            plt.plot(np.arange(dlcg.shape[0])[on_ind[:,0]],
+#                     dlcg[on_ind[:,0],0], 'go')
+
+
+    return ind_onoff
