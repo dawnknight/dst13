@@ -17,3 +17,5 @@ from dst13.py.dst_time_ticks import *
 from dst13.py.dst_reference_image import *
 from dst13.py.dst_fit_step import *
 from dst13.py.dst_lc_sort import *
+from dst13.py.dst_canny1d import *
+from dst13.py.dst_off_sort import *
