@@ -1,4 +1,3 @@
-import dst13
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter as gf
@@ -135,7 +134,6 @@ def canny1d(lcs, indices=None, width=30, delta=2, see=False, sig_clip_iter=10,
                                                         ind_off_list]])
 
         ind_onoff.append(tind_onoff[np.argsort(np.abs(tind_onoff))])
-
 
 #        if see:
 #            plt.subplot(2,2,2)
