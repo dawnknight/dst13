@@ -23,7 +23,7 @@ def onoff(night=None):
         lcs       = LightCurves('','',infile=infile,noerr=True)
         ind_onoff = canny1d(lcs)
         outfile   = os.path.join(os.environ['DST_WRITE'], 
-                                 'ind_off_night_'+str(night).zfill(2)+'.pkl')
+                                 'ind_onoff_night_'+str(night).zfill(2)+'.pkl')
 
         print("DST_ONOFF: writing output to file")
         print("DST_ONOFF:   {0}".format(outfile))
