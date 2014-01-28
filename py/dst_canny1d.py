@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter as gf
 
 def canny1d(lcs, indices=None, width=30, delta=2, see=False, sig_clip_iter=10, 
-            sig_clip_amp=2.0, sig_peaks=10.0):
+            sig_clip_amp=2.0, sig_peaks=10.0, xcheck=True, sig_xcheck=2.0):
 
     # -- defaults
     if indices==None:
@@ -127,6 +127,28 @@ def canny1d(lcs, indices=None, width=30, delta=2, see=False, sig_clip_iter=10,
 
         ind_off_list = ind_off_rgb[0] + ind_off_rgb[1] + ind_off_rgb[2]
 
+
+        # -- cross check left/right means for robustness to noise
+        if xcheck:
+            rtwd = np.sqrt(width)
+
+            for on in [_ for _ in ind_on_list]:
+                mn_l  = lcs.lcs[index,on-width:on].mean(1).mean()
+                err_l = lcs.lcs[index,on-width:on].mean(1).std()
+                mn_r  = lcs.lcs[index,on:on+width].mean(1).mean()
+                err_r = lcs.lcs[index,on:on+width].mean(1).std()
+
+                if abs(mn_r-mn_l)<(sig_xcheck*max(err_l,err_r)):
+                    ind_on_list.remove(on)
+
+            for off in [_ for _ in ind_off_list]:
+                mn_l  = lcs.lcs[index,off-width:off].mean(1).mean()
+                err_l = lcs.lcs[index,off-width:off].mean(1).std()
+                mn_r  = lcs.lcs[index,off:off+width].mean(1).mean()
+                err_r = lcs.lcs[index,off:off+width].mean(1).std()
+
+                if abs(mn_r-mn_l)<(sig_xcheck*max(err_l,err_r)):
+                    ind_off_list.remove(off)
 
 
         # -- add to on/off list
